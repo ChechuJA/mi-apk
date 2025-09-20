@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2196F3">
+    <title>Mi Primera APK de Juegos</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
+</head>
+<body>
+    <header>
+        <h1>🎮 Mi Primera APK de Juegos</h1>
+        <p>Una colección de juegos simples para Android</p>
+    </header>
+
+    <main>
+        <div class="game-grid">
+            <div class="game-card" onclick="startGame('memory')">
+                <h3>🧠 Juego de Memoria</h3>
+                <p>Encuentra las parejas de cartas</p>
+                <button>Jugar</button>
+            </div>
+            
+            <div class="game-card" onclick="startGame('snake')">
+                <h3>🐍 Snake</h3>
+                <p>El clásico juego de la serpiente</p>
+                <button>Jugar</button>
+            </div>
+            
+            <div class="game-card" onclick="startGame('quiz')">
+                <h3>❓ Quiz</h3>
+                <p>Responde preguntas divertidas</p>
+                <button>Jugar</button>
+            </div>
+        </div>
+
+        <div id="game-container" style="display: none;">
+            <button id="back-btn" onclick="goBack()">← Volver</button>
+            <div id="game-content"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Mi primera PWA convertida a APK</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
