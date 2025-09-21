@@ -1,11 +1,12 @@
 // Service Worker para la aplicación de Juegos de Bruno y Vega
-const CACHE_NAME = 'bruno-vega-cache-v2';
+const CACHE_NAME = 'bruno-vega-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
   './index-mobile.html',
   './style.css',
   './game-utils.js',
+  './mobile-controls.js',
   './manifest.json',
   // Añadir todos los scripts de juegos
   './script-arkanoid.js',

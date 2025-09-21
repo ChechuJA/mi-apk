@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+  <script src="mobile-controls.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -338,6 +339,12 @@
           try {
             currentCleanup=window.registerGame();
             canvas.focus();
+            
+            // Inicializar controles móviles
+            const gameType = src.replace('script-', '').replace('.js', '');
+            if(window.initMobileControls) {
+              window.initMobileControls(gameType);
+            }
           } catch(e) {
             console.error('Error initializing game:', e);
           }
@@ -369,6 +376,12 @@
       ctx.clearRect(0,0,canvas.width,canvas.height);
       document.getElementById('gameArea').style.display='none';
       document.getElementById('menu').style.display='block';
+      
+      // Desactivar modo juego en móvil
+      document.body.classList.remove('game-active');
+      
+      // Limpiar controles móviles
+      if(window.cleanupMobileControls) window.cleanupMobileControls();
     }
   </script>
   <script>
