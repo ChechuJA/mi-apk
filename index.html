@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>El juego de Bruno y Vega</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d3d91">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -364,6 +369,19 @@
       ctx.clearRect(0,0,canvas.width,canvas.height);
       document.getElementById('gameArea').style.display='none';
       document.getElementById('menu').style.display='block';
+    }
+  </script>
+  <script>
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/mi-apk/sw.js')
+          .then(function(registration) {
+            console.log('ServiceWorker registered successfully: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
     }
   </script>
 </body>
