@@ -2,7 +2,7 @@
   "name": "Juegos de Bruno y Vega",
   "short_name": "Bruno y Vega",
   "description": "Colección de juegos educativos y divertidos para Bruno y Vega con diferentes niveles de dificultad",
-  "start_url": "index-mobile.html",
+  "start_url": "/mi-apk/",
   "id": "/mi-apk/",
   "display": "standalone",
   "background_color": "#0d3d91",
