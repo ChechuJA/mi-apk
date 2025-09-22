@@ -1,0 +1,166 @@
+name: 🔧 APK Signing (Optional Improvement)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign_apk:
+        description: 'Sign the APK for release'
+        required: true
+        default: 'false'
+        type: boolean
+
+jobs:
+  sign-apk:
+    name: 🔐 APK Signing Process
+    runs-on: ubuntu-latest
+    if: github.event.inputs.sign_apk == 'true'
+    
+    steps:
+    - name: 📁 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: 🔐 Generate Self-Signed Certificate
+      run: |
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        if [ ! -f "$APK_FILE" ]; then
+          echo "❌ APK file not found"
+          exit 1
+        fi
+        
+        echo "🔑 Generating self-signed certificate for APK signing..."
+        
+        # Create a keystore for signing
+        keytool -genkey -v \
+          -keystore bruno-vega.keystore \
+          -alias bruno-vega-key \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass "brunovega123" \
+          -keypass "brunovega123" \
+          -dname "CN=Bruno y Vega Games, OU=Educational Games, O=Bruno y Vega, L=Madrid, ST=Madrid, C=ES"
+        
+        echo "✅ Keystore created"
+        
+    - name: ✍️ Sign APK
+      run: |
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-signed.apk"
+        
+        # Copy the unsigned APK
+        cp "$APK_FILE" "$SIGNED_APK"
+        
+        # Sign the APK
+        jarsigner -verbose \
+          -sigalg SHA256withRSA \
+          -digestalg SHA-256 \
+          -keystore bruno-vega.keystore \
+          -storepass "brunovega123" \
+          -keypass "brunovega123" \
+          "$SIGNED_APK" \
+          bruno-vega-key
+        
+        echo "✅ APK signed successfully"
+        
+        # Verify the signature
+        jarsigner -verify -verbose "$SIGNED_APK"
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ APK signature verified"
+        else
+          echo "❌ APK signature verification failed"
+          exit 1
+        fi
+        
+        # Show file sizes
+        echo "📊 File comparison:"
+        echo "Original: $(du -h "$APK_FILE" | cut -f1)"
+        echo "Signed:   $(du -h "$SIGNED_APK" | cut -f1)"
+        
+    - name: 🔍 Validate Signed APK
+      run: |
+        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-signed.apk"
+        
+        echo "📋 Signed APK validation:"
+        
+        # Check if it's a valid Android package
+        if file "$SIGNED_APK" | grep -q "Android package"; then
+          echo "  ✅ Valid Android Package format"
+        else
+          echo "  ❌ Invalid format"
+          exit 1
+        fi
+        
+        # Extract and verify content
+        TEMP_DIR="/tmp/signed_apk_test"
+        mkdir -p "$TEMP_DIR"
+        
+        if unzip -q "$SIGNED_APK" -d "$TEMP_DIR"; then
+          echo "  ✅ APK extraction successful"
+          
+          # Check signature files
+          if ls "$TEMP_DIR/META-INF/"*.SF >/dev/null 2>&1; then
+            echo "  ✅ Signature files present"
+          else
+            echo "  ❌ Signature files missing"
+          fi
+          
+        else
+          echo "  ❌ APK extraction failed"
+          exit 1
+        fi
+        
+        rm -rf "$TEMP_DIR"
+        
+    - name: 📤 Upload Signed APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: bruno-vega-signed-apk
+        path: android-apk/releases/latest/Bruno y Vega-signed.apk
+        retention-days: 30
+        
+    - name: 📊 Create Signing Report
+      run: |
+        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-signed.apk"
+        
+        echo "# 🔐 APK Signing Report" > signing-report.md
+        echo "" >> signing-report.md
+        echo "**Date:** $(date)" >> signing-report.md
+        echo "**Original APK:** Bruno y Vega-unsigned.apk" >> signing-report.md
+        echo "**Signed APK:** Bruno y Vega-signed.apk" >> signing-report.md
+        echo "" >> signing-report.md
+        echo "## ✅ Signing Process" >> signing-report.md
+        echo "- Certificate generated with RSA 2048-bit key" >> signing-report.md
+        echo "- Valid for 10,000 days (~27 years)" >> signing-report.md
+        echo "- SHA256 with RSA signature algorithm" >> signing-report.md
+        echo "- Self-signed certificate for development" >> signing-report.md
+        echo "" >> signing-report.md
+        echo "## 📊 File Details" >> signing-report.md
+        echo "- **Original Size:** $(du -h "android-apk/releases/latest/Bruno y Vega-unsigned.apk" | cut -f1)" >> signing-report.md
+        echo "- **Signed Size:** $(du -h "$SIGNED_APK" | cut -f1)" >> signing-report.md
+        echo "" >> signing-report.md
+        echo "## 🎯 Installation Benefits" >> signing-report.md
+        echo "Signing the APK provides several advantages:" >> signing-report.md
+        echo "- ✅ Better compatibility with newer Android versions" >> signing-report.md
+        echo "- ✅ Reduced security warnings during installation" >> signing-report.md
+        echo "- ✅ More professional app presentation" >> signing-report.md
+        echo "- ✅ Future update capability (same signature required)" >> signing-report.md
+        echo "" >> signing-report.md
+        echo "⚠️ **Note:** This is a self-signed certificate, not from a trusted CA." >> signing-report.md
+        echo "For production apps, consider using Google Play App Signing." >> signing-report.md
+        
+        cat signing-report.md
+        
+    - name: 📤 Upload Signing Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-signing-report
+        path: signing-report.md
+        retention-days: 30

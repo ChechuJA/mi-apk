@@ -111,6 +111,31 @@ Verificar permisos:
 - Habilita permisos necesarios
 ```
 
+## 🧪 Validación Automatizada
+
+### 🔍 Estado de Testing
+Este repositorio ahora incluye **pipelines de testing automatizados** que validan cada APK antes de su publicación:
+
+**✅ Validaciones activas:**
+- 📦 Estructura y formato del APK
+- 🤖 Instalación en emuladores Android 9 y 11  
+- 🐳 Testing en contenedores Docker
+- 🔍 Verificación de archivos esenciales
+- 🛡️ Análisis de seguridad básico
+
+**📊 Ver estado actual:**
+- Ve a la [página de Actions](https://github.com/ChechuJA/mi-apk/actions)
+- Los badges en el README muestran el estado de validación
+- Cada release ha pasado múltiples tests antes de estar disponible
+
+### 🛠️ Diagnóstico Avanzado
+Si tienes problemas de instalación, los logs de testing pueden ayudar:
+
+1. **Ve a GitHub Actions** del repositorio
+2. **Busca el workflow más reciente** (Quick Validation, APK Testing, Docker Testing)
+3. **Revisa los logs** para identificar problemas conocidos
+4. **Compara tu dispositivo** con las especificaciones testadas
+
 ## 🔧 Herramientas de Diagnóstico
 
 ### Verificar APK antes de instalar
@@ -153,6 +178,29 @@ sha256sum "Bruno y Vega-unsigned.apk"
 ```
 
 ## 🆘 Si Nada Funciona
+
+### ⚠️ Si los tests pasan pero sigues teniendo problemas
+
+**Todos los pipelines marcan ✅ pero no puedes instalar:**
+
+1. **Verifica la descarga:**
+   ```bash
+   # El APK debe pesar exactamente ~930 KB
+   # Si pesa diferente, la descarga se corrompió
+   ```
+
+2. **Prueba desde otro dispositivo** (si tienes acceso)
+   - Si funciona en otro Android → Problema específico de tu device
+   - Si falla en varios devices → Reporta el issue inmediatamente
+
+3. **Información crítica para reportar:**
+   ```
+   🧪 Tests automáticos: ✅ PASSED
+   📱 Mi dispositivo: [Modelo y Android version] 
+   ❌ Error específico: [Mensaje exacto]
+   📊 APK descargado: [Tamaño en KB]
+   🔧 Pasos intentados: [Lista todo lo que probaste]
+   ```
 
 ### Opción 1: Instalar desde navegador web
 ```
