@@ -107,24 +107,28 @@ class MobileControls {
   
   init(gameType, canvas) {
     this.gameCanvas = canvas;
-    
-    // Force mobile controls for APK environment
-    const isAPK = window.location.protocol === 'file:' || 
-                  window.navigator.userAgent.includes('wv') ||
-                  document.documentElement.getAttribute('data-environment') === 'apk';
-    
-    if (!this.isMobile && !isAPK) {
-      console.log('Desktop environment detected, mobile controls disabled');
-      return; // No crear controles en desktop a menos que sea APK
+
+    if (!this.isMobile) {
+      console.log('MobileControls: Desktop device detected, skipping mobile controls');
+      return; // No crear controles en desktop
     }
     
-    console.log('Mobile/APK environment detected, initializing controls for:', gameType);
-    
+    console.log('MobileControls: Initializing for game type:', gameType);
+
     const config = this.gameConfigs[this.gameTypeMap[gameType] || 'directional'];
-    this.createControlsContainer();
-    this.createButtons(config.buttons);
-    this.setupEventListeners();
-    this.showControls();
+    
+    // Ensure cleanup of any existing controls first
+    this.cleanup();
+    
+    // Add slight delay to ensure DOM is ready
+    setTimeout(() => {
+      this.createControlsContainer();
+      this.createButtons(config.buttons);
+      this.setupEventListeners();
+      this.showControls();
+      
+      console.log('MobileControls: Successfully initialized with', config.buttons.length, 'buttons');
+    }, 100);
   }
   
   createControlsContainer() {
@@ -299,6 +303,11 @@ class MobileControls {
       if (this.gameCanvas) {
         this.gameCanvas.style.marginBottom = '120px';
       }
+      
+      console.log('MobileControls: Controls now visible');
+    } else {
+      console.log('MobileControls: Cannot show controls -', 
+        !this.controlsContainer ? 'no container' : 'not mobile device');
     }
   }
   
@@ -370,15 +379,33 @@ window.mobileControls = new MobileControls();
 
 // Auto-inicialización cuando se detecta un juego
 window.initMobileControls = function(gameType) {
+  console.log('initMobileControls called with gameType:', gameType);
+  
   const canvas = document.getElementById('gameCanvas');
-  if (canvas && window.mobileControls) {
+  if (!canvas) {
+    console.warn('initMobileControls: gameCanvas not found');
+    return;
+  }
+  
+  if (window.mobileControls) {
     window.mobileControls.init(gameType || window.mobileControls.detectGameType(), canvas);
+  } else {
+    console.error('initMobileControls: mobileControls instance not available');
   }
 };
 
 // Limpieza automática
 window.cleanupMobileControls = function() {
+  console.log('cleanupMobileControls called');
   if (window.mobileControls) {
     window.mobileControls.cleanup();
   }
 };
+
+// Auto-initialize on page load if mobile device detected
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, mobile controls available:', !!window.mobileControls);
+  if (window.mobileControls && window.mobileControls.isMobile) {
+    console.log('Mobile device detected on page load');
+  }
+});
