@@ -1,0 +1,266 @@
+name: 🧪 APK Testing Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'android-apk/releases/latest/**'
+      - '.github/workflows/apk-testing.yml'
+  pull_request:
+    branches: [ main ]
+    paths: 
+      - 'android-apk/releases/latest/**'
+  workflow_dispatch:
+
+jobs:
+  apk-analysis:
+    name: 📋 APK Analysis & Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: 📦 Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: 🔧 Install Android SDK Build Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y android-sdk-platform-tools android-sdk-build-tools
+        
+    - name: 📊 APK File Information
+      run: |
+        echo "## 📱 APK Analysis Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        if [ ! -f "$APK_FILE" ]; then
+          echo "❌ APK file not found: $APK_FILE"
+          exit 1
+        fi
+        
+        # Basic file information
+        FILE_SIZE=$(du -h "$APK_FILE" | cut -f1)
+        FILE_TYPE=$(file "$APK_FILE")
+        
+        echo "### 📁 File Details" >> $GITHUB_STEP_SUMMARY
+        echo "- **File:** \`Bruno y Vega-unsigned.apk\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Size:** $FILE_SIZE" >> $GITHUB_STEP_SUMMARY
+        echo "- **Type:** $FILE_TYPE" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: 🔍 APK Structure Validation
+      run: |
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        echo "### 📦 APK Contents" >> $GITHUB_STEP_SUMMARY
+        
+        # Check APK structure
+        unzip -l "$APK_FILE" > /tmp/apk_contents.txt
+        
+        # Key files validation
+        echo "#### ✅ Required Files Check" >> $GITHUB_STEP_SUMMARY
+        
+        for required_file in "AndroidManifest.xml" "classes.dex" "resources.arsc"; do
+          if grep -q "$required_file" /tmp/apk_contents.txt; then
+            echo "- ✅ $required_file" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ $required_file (MISSING)" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Extract APK for further analysis
+        mkdir -p /tmp/apk_extracted
+        unzip -q "$APK_FILE" -d /tmp/apk_extracted
+    
+    - name: 🛡️ Security & Permission Analysis  
+      run: |
+        echo "### 🔒 Security Analysis" >> $GITHUB_STEP_SUMMARY
+        
+        # Basic security checks
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        # Check if APK is signed
+        if jarsigner -verify -verbose "$APK_FILE" 2>/dev/null; then
+          echo "- ✅ APK is digitally signed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⚠️ APK is unsigned (expected for development)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # File integrity check
+        echo "- 📊 **File integrity:** $(sha256sum "$APK_FILE" | cut -d' ' -f1 | cut -c1-16)..." >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+  emulator-testing:
+    name: 📱 Android Emulator Testing  
+    runs-on: ubuntu-latest
+    needs: apk-analysis
+    
+    strategy:
+      matrix:
+        api-level: [28, 30] # Android 9 and 11
+        
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: 🚀 Enable KVM group perms
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        
+    - name: 🤖 AVD Cache
+      uses: actions/cache@v4
+      id: avd-cache
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-${{ matrix.api-level }}
+        
+    - name: 🏗️ Create AVD and generate snapshot for caching
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        profile: Nexus 6
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Generated AVD snapshot for caching."
+        
+    - name: 🧪 Run APK Installation Test
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        profile: Nexus 6
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: |
+          echo "🔍 Starting APK installation test on Android API ${{ matrix.api-level }}"
+          
+          APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+          PACKAGE_NAME="com.brunoyegames"
+          
+          # Wait for emulator to be ready
+          adb wait-for-device
+          adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
+          
+          echo "📱 Device info:"
+          adb shell getprop ro.build.version.release
+          adb shell getprop ro.product.model
+          
+          # Install APK
+          echo "📦 Installing APK..."
+          if adb install -r "$APK_FILE"; then
+            echo "✅ APK installed successfully"
+            
+            # Check if app is installed
+            if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
+              echo "✅ Package found in system"
+            else
+              echo "⚠️ Package not found, checking all Bruno packages:"
+              adb shell pm list packages | grep -i bruno || echo "No Bruno packages found"
+            fi
+            
+            # Try to launch the app (if we can determine the main activity)
+            echo "🚀 Attempting to launch app..."
+            # List activities for the package
+            MAIN_ACTIVITY=$(adb shell dumpsys package "$PACKAGE_NAME" | grep -A 1 "android.intent.action.MAIN" | grep "$PACKAGE_NAME" | head -1 | awk '{print $2}' | cut -d'/' -f2 || echo "MainActivity")
+            
+            if [ ! -z "$MAIN_ACTIVITY" ]; then
+              echo "📱 Launching activity: $MAIN_ACTIVITY"
+              adb shell am start -n "$PACKAGE_NAME/$MAIN_ACTIVITY" || echo "⚠️ Could not launch main activity"
+              
+              # Wait a bit and check if app is running
+              sleep 5
+              if adb shell dumpsys activity activities | grep -q "$PACKAGE_NAME"; then
+                echo "✅ App is running successfully"
+              else
+                echo "⚠️ App may not be running properly"
+              fi
+            else
+              echo "⚠️ Could not determine main activity"
+            fi
+            
+            # Uninstall for cleanup
+            echo "🧹 Cleaning up..."
+            adb uninstall "$PACKAGE_NAME" || echo "Package was not installed or already removed"
+            
+          else
+            echo "❌ APK installation failed"
+            exit 1
+          fi
+
+  test-report:
+    name: 📊 Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [apk-analysis, emulator-testing]
+    if: always()
+    
+    steps:
+    - name: 🔍 Checkout Repository  
+      uses: actions/checkout@v4
+      
+    - name: 📋 Generate Final Report
+      run: |
+        echo "# 🧪 APK Testing Results" > test-report.md
+        echo "" >> test-report.md
+        echo "**Date:** $(date)" >> test-report.md
+        echo "**APK:** Bruno y Vega-unsigned.apk" >> test-report.md
+        echo "" >> test-report.md
+        
+        if [ "${{ needs.apk-analysis.result }}" = "success" ]; then
+          echo "✅ **APK Analysis:** PASSED" >> test-report.md
+        else
+          echo "❌ **APK Analysis:** FAILED" >> test-report.md
+        fi
+        
+        if [ "${{ needs.emulator-testing.result }}" = "success" ]; then
+          echo "✅ **Emulator Testing:** PASSED" >> test-report.md
+        else
+          echo "❌ **Emulator Testing:** FAILED" >> test-report.md
+        fi
+        
+        echo "" >> test-report.md
+        echo "## 📱 Installation Guide" >> test-report.md
+        echo "" >> test-report.md
+        echo "If all tests passed, the APK should install correctly on:" >> test-report.md
+        echo "- Android 9.0+ (API 28+)" >> test-report.md
+        echo "- Devices with 1GB+ RAM" >> test-report.md
+        echo "- 50MB+ free storage" >> test-report.md
+        echo "" >> test-report.md
+        echo "### 🔧 Installation Steps" >> test-report.md
+        echo "1. Enable \"Unknown Sources\" in Android Settings" >> test-report.md
+        echo "2. Download the APK file" >> test-report.md
+        echo "3. Tap the APK file to install" >> test-report.md
+        echo "4. Follow the installation prompts" >> test-report.md
+        
+        # Display the report
+        cat test-report.md
+        
+    - name: 📤 Upload Test Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-test-report
+        path: test-report.md
+        retention-days: 30

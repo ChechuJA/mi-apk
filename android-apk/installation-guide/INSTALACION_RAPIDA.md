@@ -23,4 +23,4 @@
 🏀 Atrapa Bolas | 🐦 Flappy Bird | 🏍️ Moto Desierto | 🧠 Memoria | ➕ Más...
 
 ---
-**¿Problemas?** → [Guía Completa](INSTALACION_COMPLETA.md) | [Reportar Issue](https://github.com/ChechuJA/mi-apk/issues)
+**¿Problemas?** → [Guía Completa](INSTALACION_COMPLETA.md) | [🛠️ Solución de Errores](SOLUCION_ERRORES.md) | [Reportar Issue](https://github.com/ChechuJA/mi-apk/issues)

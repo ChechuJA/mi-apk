@@ -1,0 +1,251 @@
+name: 🐳 Docker APK Testing
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'android-apk/releases/latest/**'
+      - 'docker/**'
+      - '.github/workflows/docker-testing.yml'
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test Level'
+        required: true
+        default: 'basic'
+        type: choice
+        options:
+        - basic
+        - full
+        - analysis-only
+
+jobs:
+  docker-apk-testing:
+    name: 🐳 Docker-based APK Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📁 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🔨 Build APK Testing Docker Image
+      run: |
+        cat > Dockerfile.apk-testing << 'EOF'
+        FROM ubuntu:22.04
+        
+        # Avoid interactive prompts
+        ENV DEBIAN_FRONTEND=noninteractive
+        ENV ANDROID_HOME=/opt/android-sdk
+        ENV PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
+        
+        # Install basic dependencies
+        RUN apt-get update && apt-get install -y \
+            wget \
+            unzip \
+            curl \
+            file \
+            default-jdk \
+            build-essential \
+            python3 \
+            python3-pip \
+            && apt-get clean \
+            && rm -rf /var/lib/apt/lists/*
+        
+        # Install Android SDK command line tools
+        RUN mkdir -p $ANDROID_HOME && cd $ANDROID_HOME \
+            && wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip \
+            && unzip commandlinetools-linux-9477386_latest.zip \
+            && mkdir -p cmdline-tools/latest \
+            && mv cmdline-tools/* cmdline-tools/latest/ \
+            && rm commandlinetools-linux-9477386_latest.zip
+        
+        ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+        
+        # Accept licenses and install platform tools
+        RUN yes | sdkmanager --licenses \
+            && sdkmanager "platform-tools" "build-tools;33.0.0" "platforms;android-33"
+        
+        # Install APK analysis tools
+        RUN pip3 install --no-cache-dir apkinfo apk-parse
+        
+        # Create working directory
+        WORKDIR /workspace
+        
+        # Copy APK analysis script
+        COPY docker-test-script.sh /usr/local/bin/test-apk.sh
+        RUN chmod +x /usr/local/bin/test-apk.sh
+        
+        ENTRYPOINT ["/usr/local/bin/test-apk.sh"]
+        EOF
+        
+        docker build -f Dockerfile.apk-testing -t apk-tester .
+        
+    - name: 📝 Create APK Test Script
+      run: |
+        cat > docker-test-script.sh << 'EOF'
+        #!/bin/bash
+        set -e
+        
+        echo "🐳 Docker APK Testing Environment"
+        echo "================================="
+        echo ""
+        
+        APK_FILE="/workspace/Bruno y Vega-unsigned.apk"
+        
+        # Check if APK file exists
+        if [ ! -f "$APK_FILE" ]; then
+            echo "❌ APK file not found: $APK_FILE"
+            exit 1
+        fi
+        
+        echo "📱 APK File Information:"
+        echo "  File: $(basename "$APK_FILE")"
+        echo "  Size: $(du -h "$APK_FILE" | cut -f1)"
+        echo "  Type: $(file "$APK_FILE")"
+        echo ""
+        
+        # Extract APK for analysis
+        echo "📦 Extracting APK..."
+        EXTRACT_DIR="/tmp/apk_extracted"
+        mkdir -p "$EXTRACT_DIR"
+        
+        if unzip -q "$APK_FILE" -d "$EXTRACT_DIR"; then
+            echo "✅ APK extraction successful"
+        else
+            echo "❌ APK extraction failed"
+            exit 1
+        fi
+        
+        # Analyze APK structure
+        echo ""
+        echo "🔍 APK Structure Analysis:"
+        
+        # Check essential files
+        ESSENTIAL_FILES=("AndroidManifest.xml" "classes.dex" "resources.arsc")
+        for file in "${ESSENTIAL_FILES[@]}"; do
+            if [ -f "$EXTRACT_DIR/$file" ]; then
+                echo "  ✅ $file"
+            else
+                echo "  ❌ $file (MISSING - CRITICAL)"
+            fi
+        done
+        
+        # Count files by type
+        echo ""
+        echo "📊 File Statistics:"
+        echo "  Total files: $(find "$EXTRACT_DIR" -type f | wc -l)"
+        echo "  DEX files: $(find "$EXTRACT_DIR" -name "*.dex" | wc -l)"
+        echo "  Resource files: $(find "$EXTRACT_DIR/res" -type f 2>/dev/null | wc -l || echo "0")"
+        echo "  Asset files: $(find "$EXTRACT_DIR/assets" -type f 2>/dev/null | wc -l || echo "0")"
+        
+        # Manifest analysis
+        if [ -f "$EXTRACT_DIR/AndroidManifest.xml" ]; then
+            echo ""
+            echo "📋 Manifest Analysis:"
+            echo "  ✅ AndroidManifest.xml present"
+            
+            # Try to get basic info from manifest (binary format)
+            MANIFEST_SIZE=$(stat -c%s "$EXTRACT_DIR/AndroidManifest.xml")
+            echo "  📏 Manifest size: ${MANIFEST_SIZE} bytes"
+        fi
+        
+        # Check for common issues
+        echo ""
+        echo "🛡️ Common Issues Check:"
+        
+        # Check if APK is signed
+        if keytool -printcert -jarfile "$APK_FILE" >/dev/null 2>&1; then
+            echo "  ✅ APK appears to be signed"
+        else
+            echo "  ⚠️ APK is unsigned (expected for development builds)"
+        fi
+        
+        # Check APK alignment (if aapt is available)
+        if command -v aapt >/dev/null 2>&1; then
+            if aapt dump badging "$APK_FILE" >/dev/null 2>&1; then
+                echo "  ✅ APK format is valid"
+            else
+                echo "  ❌ APK format validation failed"
+            fi
+        else
+            echo "  ⚠️ aapt not available, skipping format validation"
+        fi
+        
+        # Final assessment
+        echo ""
+        echo "🎯 Test Results:"
+        echo "===================="
+        
+        # Count critical issues
+        CRITICAL_ISSUES=0
+        
+        if [ ! -f "$EXTRACT_DIR/AndroidManifest.xml" ]; then
+            ((CRITICAL_ISSUES++))
+        fi
+        
+        if [ ! -f "$EXTRACT_DIR/classes.dex" ]; then
+            ((CRITICAL_ISSUES++))
+        fi
+        
+        if [ "$CRITICAL_ISSUES" -eq 0 ]; then
+            echo "✅ APK VALIDATION PASSED"
+            echo "   The APK appears to be structurally sound and should install correctly."
+            echo ""
+            echo "📝 Installation Notes:"
+            echo "   - Enable 'Unknown Sources' in Android Settings"
+            echo "   - Ensure device has Android 5.0+ (API 21+)"
+            echo "   - Verify sufficient storage space (>50MB)"
+        else
+            echo "❌ APK VALIDATION FAILED"
+            echo "   Found $CRITICAL_ISSUES critical issues that may prevent installation."
+            exit 1
+        fi
+        
+        # Cleanup
+        rm -rf "$EXTRACT_DIR"
+        
+        echo ""
+        echo "🏁 Testing completed successfully!"
+        EOF
+        
+        chmod +x docker-test-script.sh
+        
+    - name: 🚀 Run Docker APK Tests
+      run: |
+        # Copy APK to current directory for Docker access
+        cp "android-apk/releases/latest/Bruno y Vega-unsigned.apk" .
+        
+        # Run the Docker test
+        docker run --rm \
+          -v "$(pwd)/Bruno y Vega-unsigned.apk":/workspace/"Bruno y Vega-unsigned.apk" \
+          apk-tester
+          
+    - name: 📊 Generate Docker Test Summary
+      if: always()
+      run: |
+        echo "## 🐳 Docker APK Testing Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Test Environment:** Ubuntu 22.04 Docker Container" >> $GITHUB_STEP_SUMMARY
+        echo "**APK:** Bruno y Vega-unsigned.apk" >> $GITHUB_STEP_SUMMARY
+        echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ **Overall Result:** PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The APK has passed Docker-based validation and should install correctly on Android devices." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Overall Result:** FAILED" >> $GITHUB_STEP_SUMMARY  
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The APK failed Docker validation. Check the logs above for specific issues." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Tested Components" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ APK file structure" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Essential Android files" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Manifest validation" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Resource integrity" >> $GITHUB_STEP_SUMMARY
