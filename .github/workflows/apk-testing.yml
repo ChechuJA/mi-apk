@@ -156,6 +156,7 @@ jobs:
         emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
         script: |
+          set -e
           echo "🔍 Starting APK installation test on Android API ${{ matrix.api-level }}"
           
           APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
@@ -171,45 +172,40 @@ jobs:
           
           # Install APK
           echo "📦 Installing APK..."
-          if adb install -r "$APK_FILE"; then
-            echo "✅ APK installed successfully"
-            
-            # Check if app is installed
-            if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
-              echo "✅ Package found in system"
-            else
-              echo "⚠️ Package not found, checking all Bruno packages:"
-              adb shell pm list packages | grep -i bruno || echo "No Bruno packages found"
-            fi
-            
-            # Try to launch the app (if we can determine the main activity)
-            echo "🚀 Attempting to launch app..."
-            # List activities for the package
-            MAIN_ACTIVITY=$(adb shell dumpsys package "$PACKAGE_NAME" | grep -A 1 "android.intent.action.MAIN" | grep "$PACKAGE_NAME" | head -1 | awk '{print $2}' | cut -d'/' -f2 || echo "MainActivity")
-            
-            if [ ! -z "$MAIN_ACTIVITY" ]; then
-              echo "📱 Launching activity: $MAIN_ACTIVITY"
-              adb shell am start -n "$PACKAGE_NAME/$MAIN_ACTIVITY" || echo "⚠️ Could not launch main activity"
-              
-              # Wait a bit and check if app is running
-              sleep 5
-              if adb shell dumpsys activity activities | grep -q "$PACKAGE_NAME"; then
-                echo "✅ App is running successfully"
-              else
-                echo "⚠️ App may not be running properly"
-              fi
-            else
-              echo "⚠️ Could not determine main activity"
-            fi
-            
-            # Uninstall for cleanup
-            echo "🧹 Cleaning up..."
-            adb uninstall "$PACKAGE_NAME" || echo "Package was not installed or already removed"
-            
+          adb install -r "$APK_FILE"
+          echo "✅ APK installed successfully"
+          
+          # Check if app is installed
+          if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
+            echo "✅ Package found in system"
           else
-            echo "❌ APK installation failed"
-            exit 1
+            echo "⚠️ Package not found, checking all Bruno packages:"
+            adb shell pm list packages | grep -i bruno || echo "No Bruno packages found"
           fi
+          
+          # Try to launch the app (if we can determine the main activity)
+          echo "🚀 Attempting to launch app..."
+          # List activities for the package
+          MAIN_ACTIVITY=$(adb shell dumpsys package "$PACKAGE_NAME" | grep -A 1 "android.intent.action.MAIN" | grep "$PACKAGE_NAME" | head -1 | awk '{print $2}' | cut -d'/' -f2 || echo "MainActivity")
+          
+          if [ ! -z "$MAIN_ACTIVITY" ]; then
+            echo "📱 Launching activity: $MAIN_ACTIVITY"
+            adb shell am start -n "$PACKAGE_NAME/$MAIN_ACTIVITY" || echo "⚠️ Could not launch main activity"
+            
+            # Wait a bit and check if app is running
+            sleep 5
+            if adb shell dumpsys activity activities | grep -q "$PACKAGE_NAME"; then
+              echo "✅ App is running successfully"
+            else
+              echo "⚠️ App may not be running properly"
+            fi
+          else
+            echo "⚠️ Could not determine main activity"
+          fi
+          
+          # Uninstall for cleanup
+          echo "🧹 Cleaning up..."
+          adb uninstall "$PACKAGE_NAME" || echo "Package was not installed or already removed"
 
   test-report:
     name: 📊 Generate Test Report
