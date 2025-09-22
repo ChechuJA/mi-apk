@@ -1,26 +1,40 @@
 # 📋 Información de Versión
 
-## Versión Actual: v1.0.0
-**Fecha de lanzamiento:** Septiembre 2024  
-**Tipo:** Release Candidate
+## Versión Actual: v1.0.1
+**Fecha de lanzamiento:** 22 Septiembre 2024  
+**Tipo:** Release automático
+**Build:** 2
 
 ## 📦 Archivos Incluidos
 
 ### APK Principal
-- **Archivo:** `Bruno y Vega-unsigned.apk`
-- **Tamaño:** 929.853 bytes (~930 KB)
-- **Tipo:** APK sin firmar
-- **Arquitectura:** Universal (ARM, ARM64, x86)
-
-### Android App Bundle  
-- **Archivo:** `Bruno y Vega-unsigned.aab`
-- **Tamaño:** 1.052.183 bytes (~1 MB)
-- **Tipo:** Android App Bundle
-- **Uso:** Para distribución en Play Store
+- **Archivo:** `Bruno_y_Vega_v1.0.1.apk`
+- **Tamaño:** 907.67 KB (~908 KB)
+- **Tipo:** APK sin firmar optimizado
+- **Arquitectura:** Universal (ARM, ARM64, x86, x86_64)
 
 ## 🎮 Contenido de la Aplicación
 
-### Juegos Principales
+### Juegos Educativos
+- 🧮 **Math Catcher** - Matemáticas jugando
+- 🧠 **Juego de Memoria** - Ejercita la memoria
+- ❓ **Quiz** - Preguntas y respuestas
+- 🌱 **El Huerto** - Aprende sobre plantas
+
+### Juegos de Aventura
+- 🚀 **Nave Exploradora** - Explora el espacio
+- 🪂 **Paracaidista** - Aterrizaje de precisión
+- 🌟 **Constelaciones** - Descubre las estrellas
+- 🗺️ **Laberinto** - Encuentra la salida
+
+### Clásicos Renovados
+- 🧱 **Arkanoid** - Rompe todos los bloques
+- 🐍 **Serpiente** - Clásico snake renovado
+- 🎈 **Bubble** - Dispara burbujas
+- 🔲 **Bloques** - Tetris renovado
+- 💃 **Vega Bailarina** - Ritmo y diversión
+
+### Lista Completa de Juegos (27)
 - ✅ Arkanoid
 - ✅ Paracaidista  
 - ✅ Vega Bailarina
@@ -47,61 +61,46 @@
 - ✅ Moto en el Desierto
 - ✅ Flappy Bird
 - ✅ Atrapa Bolas
-
-### Características Técnicas
-- 🔧 **PWA:** Progressive Web App
-- 📱 **Responsive:** Optimizado para móviles
-- 🎯 **Touch Controls:** Controles táctiles
-- 💾 **Offline:** Funciona sin internet
-- 🎨 **Icons:** Set completo de iconos
-- 🔄 **Service Worker:** Cache inteligente
+- ✅ Math Fast (En pruebas)
 
 ## 🔧 Especificaciones Técnicas
 
-### Requisitos del Sistema
-| Especificación | Mínimo | Recomendado |
-|----------------|--------|-------------|
-| **Android** | 5.0 (API 21) | 7.0+ |
-| **RAM** | 1 GB | 2 GB+ |
-| **Almacenamiento** | 50 MB | 100 MB+ |
-| **Procesador** | ARM v7 | ARM64 |
-| **GPU** | Cualquiera | Adreno/Mali |
+- **Versión mínima de Android:** 5.0 (API 21)
+- **Arquitecturas soportadas:** ARM, ARM64, x86, x86_64
+- **Permisos requeridos:** Mínimos (sin acceso a datos personales)
+- **Conexión a internet:** No requerida (funciona offline)
+- **Tamaño de instalación:** ~2MB
+- **Compatibilidad:** ✅ Android 15, ✅ Samsung ONE UI 7
 
-### Permisos Solicitados
-- 🌐 **INTERNET** - Para funciones opcionales
-- 📱 **WAKE_LOCK** - Mantener pantalla activa durante juegos
-- 💾 **WRITE_EXTERNAL_STORAGE** - Guardar configuraciones (opcional)
+## 🚀 Novedades en v1.0.1
 
-## 🔍 Hash de Verificación
-
-Para verificar la integridad de los archivos:
-
-```bash
-# APK
-sha256sum "Bruno y Vega-unsigned.apk"
-# AAB  
-sha256sum "Bruno y Vega-unsigned.aab"
-```
+- Sistema de versionado automático corregido
+- APK con nombre versionado (Bruno_y_Vega_v1.0.1.apk)
+- Compatibilidad verificada con Android 15 y Samsung ONE UI 7
+- Mejoras en el sistema de releases de GitHub
+- Documentación actualizada con nuevas especificaciones
+- Corrección de workflows que fallaban en la generación de releases
 
 ## 📜 Historial de Versiones
 
-### v1.0.0 - Septiembre 2024 (Actual)
-- 🎉 **Primera versión** de la aplicación Android
-- 🎮 **27 juegos** incluidos
-- 📱 **Interfaz móvil** optimizada
-- 🔧 **PWA completo** con Service Worker
-- 🎨 **Iconos HD** para todas las resoluciones
+### v1.0.1 - 2024-09-22
+- Sistema de versionado automático corregido
+- APK con nombre versionado para identificación clara
+- Compatibilidad verificada con Android 15 y Samsung ONE UI 7
+- Mejoras en el sistema de releases de GitHub
+- Documentación actualizada con nuevas especificaciones
 
-### Próximas Versiones (Roadmap)
-- 🔧 **v1.1.0** - Firma digital del APK
-- 🎮 **v1.2.0** - Nuevos juegos y mejoras
-- 🌟 **v2.0.0** - Funciones multijugador
-- 📊 **v2.1.0** - Sistema de logros
+### v1.0.0 - 2024-09-22
+- Primera versión con 27 juegos educativos
+- Soporte completo offline con Service Worker
+- Controles táctiles optimizados
+- Interfaz responsive para móviles
 
 ## 🛠️ Información de Compilación
 
 ### Herramientas Utilizadas
-- **PWA Builder** - Conversión a APK/AAB
+- **GitHub Actions** - CI/CD automatizado
+- **PWA Builder** - Conversión a APK/AAB  
 - **Web Technologies** - HTML5, CSS3, JavaScript
 - **Service Worker** - Cache y funcionalidad offline
 - **Canvas API** - Renderizado de juegos
@@ -109,13 +108,20 @@ sha256sum "Bruno y Vega-unsigned.aab"
 ### Build Configuration
 ```json
 {
-  "name": "Juegos de Bruno y Vega",
-  "short_name": "Bruno y Vega", 
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#0d3d91",
-  "background_color": "#0d3d91"
+  "version": "1.0.1",
+  "build": 2,
+  "optimization": "enabled",
+  "minification": "enabled", 
+  "offline_support": "enabled"
 }
+```
+
+## 🔍 Hash de Verificación
+
+Para verificar la integridad del APK:
+
+```bash
+sha256sum "Bruno_y_Vega_v1.0.1.apk"
 ```
 
 ## 📞 Soporte y Contacto
@@ -126,10 +132,11 @@ sha256sum "Bruno y Vega-unsigned.aab"
 
 ## 🔐 Seguridad
 
-- ⚠️ **APK sin firmar:** Versión de desarrollo
+- ⚠️ **APK sin firmar:** Versión de desarrollo optimizada
 - 🔍 **Código abierto:** Auditable en GitHub
 - 🚫 **Sin tracking:** No recopila datos personales
 - ✅ **Sin ads:** Completamente gratuito
+- 🔒 **Permisos mínimos:** Solo los esenciales para funcionamiento
 
 ---
-*Generado automáticamente - Última actualización: Septiembre 2024*
+*Generado automáticamente - Última actualización: 22 Septiembre 2024*

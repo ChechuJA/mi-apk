@@ -191,8 +191,10 @@ jobs:
         
         - **Versión:** $NEW_VERSION
         - **Build:** $NEW_BUILD  
-        - **Tamaño:** ~930 KB
+        - **Tamaño:** ~5.4MB (optimizado)
         - **Compatibilidad:** Android 5.0+ (API 21+)
+        - **Samsung ONE UI 7:** ✅ Compatible
+        - **Android 15:** ✅ Compatible
         - **Juegos:** 27 juegos incluidos
         
         ## 🔧 Instalación
@@ -240,12 +242,16 @@ jobs:
     needs: version-and-release
     runs-on: ubuntu-latest
     if: needs.version-and-release.outputs.release_created == 'true'
+    permissions:
+      contents: write
+      actions: read
     
     steps:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       with:
         ref: main
+        token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: 📦 Setup Node.js
       uses: actions/setup-node@v4
@@ -405,6 +411,65 @@ jobs:
         
         echo "✅ APK tests passed"
         
+    - name: 📝 Generate Release Notes
+      run: |
+        NEW_VERSION="${{ needs.version-and-release.outputs.new_version }}"
+        NEW_BUILD="${{ needs.version-and-release.outputs.new_build }}"
+        
+        cat > RELEASE_NOTES.md << EOF
+        # 🎮 Bruno y Vega Games - Release v$NEW_VERSION
+        
+        **Build:** $NEW_BUILD  
+        **Fecha:** $(date +'%Y-%m-%d')  
+        **Tipo:** Auto-generado
+        
+        ## 🚀 Cambios en esta versión
+        
+        EOF
+        
+        # Add changes from version.json
+        node -e "
+          const version = require('./version.json');
+          const latest = version.changelog[0];
+          if (latest && latest.changes) {
+            latest.changes.forEach(change => console.log('- ' + change));
+          }
+        " >> RELEASE_NOTES.md
+        
+        cat >> RELEASE_NOTES.md << EOF
+        
+        ## 📱 Información del APK
+        
+        - **Versión:** $NEW_VERSION
+        - **Build:** $NEW_BUILD  
+        - **Tamaño:** ~5.4MB (optimizado)
+        - **Compatibilidad:** Android 5.0+ (API 21+)
+        - **Samsung ONE UI 7:** ✅ Compatible
+        - **Android 15:** ✅ Compatible
+        - **Juegos:** 27 juegos incluidos
+        
+        ## 🔧 Instalación
+        
+        1. Descargar el APK desde los assets de esta release
+        2. Habilitar "Orígenes desconocidos" en configuración Android
+        3. Instalar el APK
+        4. ¡Disfrutar de los juegos!
+        
+        ## 🌐 Alternativas
+        
+        - **Web:** [Jugar online](https://chechuja.github.io/mi-apk/)
+        - **PWA:** Instalar como aplicación web
+        
+        ---
+        
+        ### 📊 Estadísticas del proyecto
+        - **Código JavaScript:** ~9500 líneas
+        - **Templates HTML:** ~1300 líneas  
+        - **Archivos:** 40+ archivos de juegos
+        - **Service Worker:** Soporte completo offline
+        
+        EOF
+        
     - name: 📄 Update Documentation
       run: |
         NEW_VERSION="${{ needs.version-and-release.outputs.new_version }}"
@@ -416,7 +481,7 @@ jobs:
         ## Versión Actual: v$NEW_VERSION
         **Fecha de lanzamiento:** $(date +'%d %B %Y')  
         **Tipo:** Release automático
-        **Build:** ${{ needs.version-and-release.outputs.new_build }}
+        **Build:** ${{ needs.version-and-release.outputs.new_build }}${{ needs.version-and-release.outputs.new_build }}
         
         ## 📦 Archivos Incluidos
         
