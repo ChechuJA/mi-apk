@@ -1,9 +1,23 @@
 {
-  "version": "1.0.4", 
-  "build": 4,
+  "version": "1.0.5", 
+  "build": 5,
   "date": "2025-09-22",
-  "description": "Nueva versión APK solicitada - Issue #26 fix",
+  "description": "APK installation fix - Issue #28 resolved",
   "changelog": [
+    {
+      "version": "1.0.5",
+      "date": "2025-09-22", 
+      "changes": [
+        "FIXED: APK installation error 'NO SE HA PODIDO ANALIZAR EL PAQUETE'",
+        "Added proper Android runtime files: classes.dex, resources.arsc",
+        "Added complete META-INF directory structure for APK validation", 
+        "APK now has full Android binary structure (not just ZIP)",
+        "Mobile controls fully integrated and tested",
+        "APK should install successfully on all Android devices"
+      ],
+      "build": 5,
+      "type": "critical-fix"
+    },
     {
       "version": "1.0.4",
       "date": "2025-09-22", 

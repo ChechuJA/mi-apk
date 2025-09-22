@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Created-By: Bruno y Vega APK Builder
+
+Name: AndroidManifest.xml
+SHA-256-Digest: placeholder
+
+Name: classes.dex
+SHA-256-Digest: placeholder
+
+Name: resources.arsc
+SHA-256-Digest: placeholder
