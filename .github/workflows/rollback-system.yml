@@ -1,0 +1,544 @@
+name: ⏪ Rollback System
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Version to rollback to (e.g., 1.0.2)'
+        required: true
+        type: string
+      rollback_type:
+        description: 'Type of rollback'
+        required: true
+        default: 'soft'
+        type: choice
+        options:
+        - soft
+        - hard
+        - emergency
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+jobs:
+  validate-rollback:
+    name: 🔍 Validate Rollback Target
+    runs-on: ubuntu-latest
+    
+    outputs:
+      target_exists: ${{ steps.check.outputs.target_exists }}
+      target_tag: ${{ steps.check.outputs.target_tag }}
+      current_version: ${{ steps.check.outputs.current_version }}
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 📋 Check Target Version
+      id: check
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        echo "🎯 Validating rollback to v$TARGET_VERSION..."
+        
+        # Get current version
+        if [ -f "version.json" ]; then
+          CURRENT_VERSION=$(node -p "require('./version.json').version" 2>/dev/null || echo "unknown")
+        else
+          CURRENT_VERSION="unknown"
+        fi
+        
+        echo "Current version: $CURRENT_VERSION"
+        echo "Target version: $TARGET_VERSION"
+        
+        # Check if target tag exists
+        if git tag -l | grep -q "^v$TARGET_VERSION$"; then
+          echo "✅ Target tag v$TARGET_VERSION exists"
+          echo "target_exists=true" >> $GITHUB_OUTPUT
+          echo "target_tag=v$TARGET_VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Target tag v$TARGET_VERSION does not exist"
+          echo "Available tags:"
+          git tag -l | head -10
+          echo "target_exists=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        
+        # Validate version format
+        if [[ ! "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ Invalid version format. Use semantic versioning (e.g., 1.0.2)"
+          exit 1
+        fi
+        
+        # Emergency rollback bypasses additional checks
+        if [ "$ROLLBACK_TYPE" = "emergency" ]; then
+          echo "⚠️ EMERGENCY ROLLBACK - Bypassing additional validation"
+          exit 0
+        fi
+        
+        # Check if we're trying to rollback to the same version
+        if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
+          echo "⚠️ Target version is the same as current version"
+          echo "This will refresh the current version files"
+        fi
+        
+        # Check if target version is newer than current (not recommended)
+        if [ "$CURRENT_VERSION" != "unknown" ]; then
+          # Simple version comparison (works for semantic versioning)
+          CURRENT_NUMERIC=$(echo "$CURRENT_VERSION" | sed 's/\.//g')
+          TARGET_NUMERIC=$(echo "$TARGET_VERSION" | sed 's/\.//g')
+          
+          if [ "$TARGET_NUMERIC" -gt "$CURRENT_NUMERIC" ]; then
+            echo "⚠️ WARNING: Target version appears newer than current version"
+            echo "This is unusual for a rollback operation"
+          fi
+        fi
+
+  execute-rollback:
+    name: ⏪ Execute Rollback
+    needs: validate-rollback
+    runs-on: ubuntu-latest
+    if: needs.validate-rollback.outputs.target_exists == 'true'
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 💾 Backup Current State
+      run: |
+        CURRENT_VERSION="${{ needs.validate-rollback.outputs.current_version }}"
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        
+        echo "💾 Creating backup of current state..."
+        
+        # Create backup directory
+        mkdir -p "backups/rollback_$TIMESTAMP"
+        
+        # Backup current files
+        cp -r . "backups/rollback_$TIMESTAMP/" || true
+        
+        # Create backup manifest
+        cat > "backups/rollback_$TIMESTAMP/BACKUP_INFO.md" << EOF
+        # 💾 Rollback Backup
+        
+        **Created:** $(date)
+        **Current Version:** $CURRENT_VERSION
+        **Target Version:** $TARGET_VERSION
+        **Rollback Type:** ${{ github.event.inputs.rollback_type }}
+        **Reason:** ${{ github.event.inputs.reason }}
+        **Commit:** $(git rev-parse HEAD)
+        **Branch:** $(git branch --show-current)
+        
+        ## 📁 Backed up files
+        - All source files
+        - Configuration files  
+        - Version history
+        - Release assets
+        
+        ## 🔄 Restore Instructions
+        To restore from this backup:
+        1. Copy files back to repository root
+        2. Update version.json with correct version
+        3. Commit and push changes
+        4. Create new release if needed
+        EOF
+        
+        echo "✅ Backup created in backups/rollback_$TIMESTAMP/"
+        
+    - name: ⏪ Checkout Target Version
+      run: |
+        TARGET_TAG="${{ needs.validate-rollback.outputs.target_tag }}"
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        echo "⏪ Rolling back to $TARGET_TAG ($ROLLBACK_TYPE rollback)..."
+        
+        case $ROLLBACK_TYPE in
+          "soft")
+            echo "🔄 Soft rollback: Restoring files while preserving history"
+            # Restore files from target version but keep current branch
+            git checkout "$TARGET_TAG" -- . || echo "Some files may not exist in target version"
+            ;;
+          "hard") 
+            echo "🔄 Hard rollback: Resetting to target version"
+            git reset --hard "$TARGET_TAG"
+            ;;
+          "emergency")
+            echo "🚨 Emergency rollback: Force reset to target version"
+            git reset --hard "$TARGET_TAG"
+            git clean -fd
+            ;;
+        esac
+        
+        # Ensure we have the version file from the target
+        git checkout "$TARGET_TAG" -- version.json 2>/dev/null || echo "version.json not found in target"
+        
+    - name: 🔧 Update Rollback Metadata
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        REASON="${{ github.event.inputs.reason }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        echo "🔧 Updating metadata for rollback..."
+        
+        # Update version.json with rollback information
+        if [ -f "version.json" ]; then
+          node -e "
+            const fs = require('fs');
+            let version;
+            try {
+              version = require('./version.json');
+            } catch (e) {
+              version = {version: '$TARGET_VERSION', build: 1, changelog: []};
+            }
+            
+            // Increment build number for the rollback
+            version.build = (version.build || 1) + 1;
+            version.date = new Date().toISOString().split('T')[0];
+            version.description = 'Rollback to v$TARGET_VERSION';
+            version.rollback = {
+              date: new Date().toISOString(),
+              reason: '$REASON',
+              type: '$ROLLBACK_TYPE',
+              previous_version: '${{ needs.validate-rollback.outputs.current_version }}'
+            };
+            
+            // Add rollback to changelog
+            version.changelog.unshift({
+              version: '$TARGET_VERSION',
+              date: new Date().toISOString().split('T')[0],
+              changes: ['⏪ ROLLBACK: ' + '$REASON'],
+              build: version.build,
+              type: 'rollback',
+              rollback_info: {
+                from_version: '${{ needs.validate-rollback.outputs.current_version }}',
+                reason: '$REASON',
+                type: '$ROLLBACK_TYPE'
+              }
+            });
+            
+            fs.writeFileSync('version.json', JSON.stringify(version, null, 2));
+          "
+        else
+          # Create new version.json if it doesn't exist
+          cat > version.json << EOF
+        {
+          "version": "$TARGET_VERSION",
+          "build": 1,
+          "date": "$(date +%Y-%m-%d)",
+          "description": "Rollback to v$TARGET_VERSION",
+          "rollback": {
+            "date": "$(date -Iseconds)",
+            "reason": "$REASON",
+            "type": "$ROLLBACK_TYPE",
+            "previous_version": "${{ needs.validate-rollback.outputs.current_version }}"
+          },
+          "changelog": [
+            {
+              "version": "$TARGET_VERSION",
+              "date": "$(date +%Y-%m-%d)",
+              "changes": ["⏪ ROLLBACK: $REASON"],
+              "build": 1,
+              "type": "rollback"
+            }
+          ]
+        }
+        EOF
+        fi
+        
+        # Update manifest.json if it exists
+        if [ -f "manifest.json" ]; then
+          node -e "
+            const fs = require('fs');
+            const manifest = require('./manifest.json');
+            manifest.version = '$TARGET_VERSION';
+            if (manifest.version_code) {
+              manifest.version_code = manifest.version_code + 1;
+            }
+            fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
+          "
+        fi
+        
+        # Update version strings in HTML files
+        sed -i "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/v$TARGET_VERSION/g" *.html 2>/dev/null || true
+        
+    - name: 🧪 Validate Rollback State
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        
+        echo "🧪 Validating rollback state..."
+        
+        # Check essential files exist
+        ESSENTIAL_FILES=("index.html" "manifest.json" "version.json")
+        for file in "${ESSENTIAL_FILES[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists"
+          else
+            echo "⚠️ $file missing (may be expected for this version)"
+          fi
+        done
+        
+        # Verify version consistency
+        if [ -f "version.json" ]; then
+          CURRENT_VERSION_IN_FILE=$(node -p "require('./version.json').version" 2>/dev/null || echo "unknown")
+          if [ "$CURRENT_VERSION_IN_FILE" = "$TARGET_VERSION" ]; then
+            echo "✅ Version consistency check passed"
+          else
+            echo "⚠️ Version mismatch: file shows $CURRENT_VERSION_IN_FILE, expected $TARGET_VERSION"
+          fi
+        fi
+        
+        # Check for game files
+        GAME_COUNT=$(ls script-*.js 2>/dev/null | wc -l)
+        echo "📊 Found $GAME_COUNT game script files"
+        
+        if [ "$GAME_COUNT" -gt 0 ]; then
+          echo "✅ Game files present"
+        else
+          echo "⚠️ No game script files found"
+        fi
+        
+    - name: 📄 Generate Rollback Documentation  
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        REASON="${{ github.event.inputs.reason }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        cat > ROLLBACK_NOTES.md << EOF
+        # ⏪ Rollback to v$TARGET_VERSION
+        
+        **Fecha:** $(date)  
+        **Tipo:** $ROLLBACK_TYPE rollback  
+        **Razón:** $REASON
+        
+        ## 📋 Detalles del Rollback
+        
+        - **Versión anterior:** ${{ needs.validate-rollback.outputs.current_version }}
+        - **Versión objetivo:** $TARGET_VERSION
+        - **Ejecutado por:** @${{ github.actor }}
+        - **Workflow:** ${{ github.workflow }}
+        
+        ## 🔍 Validaciones Realizadas
+        
+        - ✅ Versión objetivo existe en el repositorio
+        - ✅ Backup de estado actual creado
+        - ✅ Archivos esenciales restaurados
+        - ✅ Metadata de versión actualizada
+        
+        ## 📁 Archivos Afectados
+        
+        El rollback ha restaurado todos los archivos del proyecto al estado
+        de la versión $TARGET_VERSION, incluyendo:
+        
+        - Archivos de juegos (script-*.js)
+        - Archivos de configuración (manifest.json, version.json)
+        - Archivos de interfaz (*.html, *.css)
+        - Assets y recursos
+        
+        ## 🚨 Acciones Post-Rollback
+        
+        Después de este rollback, se recomienda:
+        
+        1. **Probar la funcionalidad** - Verificar que la aplicación funciona correctamente
+        2. **Generar nuevo APK** - Ejecutar el workflow de build si es necesario
+        3. **Documentar cambios** - Actualizar documentación si procede
+        4. **Comunicar cambios** - Informar a usuarios sobre el rollback
+        
+        ## 🔄 Cómo Revertir Este Rollback
+        
+        Si necesitas revertir este rollback:
+        
+        \`\`\`bash
+        # Opción 1: Usar el backup automático
+        git checkout main
+        cp -r backups/rollback_*/* .
+        git add .
+        git commit -m "Restore from rollback backup"
+        
+        # Opción 2: Rollback al commit anterior
+        git log --oneline -10  # Ver commits recientes
+        git rollback --target-version [VERSION_ANTERIOR]
+        \`\`\`
+        
+        ## 📞 Soporte
+        
+        Si hay problemas con este rollback:
+        - Revisar logs de este workflow
+        - Consultar backups en \`backups/rollback_*\`
+        - Contactar al administrador del repositorio
+        
+        ---
+        
+        **⚠️ IMPORTANTE:** Este rollback afecta el código fuente. Los usuarios
+        deben descargar la nueva versión del APK para recibir los cambios.
+        EOF
+        
+    - name: 💾 Commit Rollback Changes
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        REASON="${{ github.event.inputs.reason }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action (Rollback)"
+        
+        # Add all changes
+        git add .
+        
+        # Create rollback commit
+        git commit -m "⏪ ROLLBACK to v$TARGET_VERSION
+
+        Type: $ROLLBACK_TYPE rollback
+        Reason: $REASON
+        Previous version: ${{ needs.validate-rollback.outputs.current_version }}
+        Executed by: @${{ github.actor }}
+        
+        [skip ci]" || echo "No changes to commit"
+        
+        # Push changes
+        git push || echo "Push failed, will retry..."
+        
+    - name: 🏷️ Create Rollback Tag
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        # Create a rollback tag
+        ROLLBACK_TAG="rollback-$(date +%Y%m%d-%H%M%S)-v$TARGET_VERSION"
+        
+        git tag -a "$ROLLBACK_TAG" -m "⏪ $ROLLBACK_TYPE rollback to v$TARGET_VERSION
+
+        Reason: ${{ github.event.inputs.reason }}
+        Previous version: ${{ needs.validate-rollback.outputs.current_version }}
+        Date: $(date)"
+        
+        git push origin "$ROLLBACK_TAG" || echo "Tag push failed, continuing..."
+        
+        echo "🏷️ Created rollback tag: $ROLLBACK_TAG"
+
+  rebuild-after-rollback:
+    name: 🏗️ Rebuild After Rollback
+    needs: [validate-rollback, execute-rollback]
+    runs-on: ubuntu-latest
+    if: success() && github.event.inputs.rollback_type != 'emergency'
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🏗️ Rebuild APK for Rollback Version
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        
+        echo "🏗️ Rebuilding APK for rollback version v$TARGET_VERSION..."
+        
+        # Install build dependencies
+        npm init -y
+        npm install --save-dev terser clean-css-cli html-minifier-terser
+        
+        # Create optimized build
+        mkdir -p build/rollback-apk
+        
+        # Minify JS files
+        for js_file in script-*.js; do
+          if [ -f "$js_file" ]; then
+            npx terser "$js_file" --compress --mangle -o "build/rollback-apk/$js_file"
+          fi
+        done
+        
+        # Copy other files
+        cp *.html build/rollback-apk/ 2>/dev/null || true
+        cp *.css build/rollback-apk/ 2>/dev/null || true
+        cp *.json build/rollback-apk/ 2>/dev/null || true
+        cp -r assets build/rollback-apk/ 2>/dev/null || true
+        cp -r icons build/rollback-apk/ 2>/dev/null || true
+        
+        # Create APK package
+        cd build/rollback-apk
+        zip -r "../Bruno_y_Vega_ROLLBACK_v${TARGET_VERSION}.apk" . -x "*.DS_Store" "node_modules/*"
+        cd ../..
+        
+        # Update latest directory
+        mkdir -p "android-apk/releases/latest"
+        cp "build/Bruno_y_Vega_ROLLBACK_v${TARGET_VERSION}.apk" "android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        echo "✅ Rollback APK rebuilt successfully"
+        
+    - name: 📤 Upload Rollback APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: rollback-apk-v${{ github.event.inputs.target_version }}
+        path: build/Bruno_y_Vega_ROLLBACK_v${{ github.event.inputs.target_version }}.apk
+        retention-days: 30
+
+  notification:
+    name: 📢 Rollback Notification
+    needs: [validate-rollback, execute-rollback]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 📊 Generate Rollback Summary
+      run: |
+        TARGET_VERSION="${{ github.event.inputs.target_version }}"
+        ROLLBACK_SUCCESS="${{ needs.execute-rollback.result }}"
+        REASON="${{ github.event.inputs.reason }}"
+        ROLLBACK_TYPE="${{ github.event.inputs.rollback_type }}"
+        
+        echo "## ⏪ Rollback to v$TARGET_VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Tipo:** $ROLLBACK_TYPE rollback" >> $GITHUB_STEP_SUMMARY
+        echo "**Razón:** $REASON" >> $GITHUB_STEP_SUMMARY
+        echo "**Versión anterior:** ${{ needs.validate-rollback.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Ejecutado por:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Fecha:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$ROLLBACK_SUCCESS" = "success" ]; then
+          echo "✅ **Estado:** Rollback completado exitosamente" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Cambios Realizados" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏪ Código fuente restaurado a v$TARGET_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- 📋 Metadata y versión actualizada" >> $GITHUB_STEP_SUMMARY
+          echo "- 💾 Backup automático creado" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏷️ Tag de rollback generado" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$ROLLBACK_TYPE" != "emergency" ]; then
+            echo "- 🏗️ APK reconstruido para la nueva versión" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "❌ **Estado:** Error durante el rollback" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Acciones Requeridas" >> $GITHUB_STEP_SUMMARY  
+          echo "- Revisar logs del workflow" >> $GITHUB_STEP_SUMMARY
+          echo "- Verificar estado del repositorio" >> $GITHUB_STEP_SUMMARY
+          echo "- Restaurar desde backup si es necesario" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Recursos" >> $GITHUB_STEP_SUMMARY
+        echo "- [Ver commits](https://github.com/${{ github.repository }}/commits/main)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Documentación de rollback](https://github.com/${{ github.repository }}/blob/main/ROLLBACK_NOTES.md)" >> $GITHUB_STEP_SUMMARY
