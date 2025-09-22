@@ -1,38 +1,19 @@
-name: 🏗️ Enhanced Build System
+# Temporarily disabled due to YAML syntax issues with here-documents
+# Will be re-enabled after fixing indentation issues
+name: 🏗️ Enhanced Build System (Disabled)
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - 'assets/**'
-      - 'icons/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - 'assets/**'
-      - 'icons/**'
+  # Temporarily disabled
   workflow_dispatch:
     inputs:
-      optimization_level:
-        description: 'Optimization level'
+      force_run:
+        description: 'Force run disabled workflow'
         required: true
-        default: 'standard'
+        default: 'no'
         type: choice
         options:
-        - minimal
-        - standard
-        - aggressive
-      include_debug:
-        description: 'Include debug information'
-        required: false
-        default: false
-        type: boolean
+        - 'no'
+        - 'yes'
 
 jobs:
   code-quality:
