@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Juegos de Bruno y Vega - Android APK</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d3d91 0%, #1976d2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0d3d91 0%, #1976d2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .content {
+            padding: 30px;
+        }
+        .download-section {
+            background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .download-btn {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            margin: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .download-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .nav-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+        .nav-card h3 {
+            margin: 0 0 10px 0;
+            color: #0d3d91;
+            font-size: 1.3rem;
+        }
+        .nav-card .emoji {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .game-tag {
+            background: linear-gradient(135deg, #90caf9, #64b5f6);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        .specs {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .specs h3 {
+            margin: 0 0 15px 0;
+            color: #0d3d91;
+        }
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .spec-item:last-child {
+            border-bottom: none;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            margin-top: 30px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Juegos de Bruno y Vega</h1>
+            <p>Aplicación Android - Colección de Juegos Educativos</p>
+        </div>
+
+        <div class="content">
+            <div class="download-section">
+                <h2 style="margin: 0 0 15px 0;">📥 ¡Descarga Ahora!</h2>
+                <p style="margin: 0 0 20px 0; opacity: 0.9;">Instala la aplicación en tu dispositivo Android</p>
+                
+                <a href="releases/latest/Bruno%20y%20Vega-unsigned.apk" class="download-btn">
+                    📱 Descargar APK (930 KB)
+                </a>
+                
+                <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                    Compatible con Android 5.0+ • Sin publicidad • Código abierto
+                </div>
+            </div>
+
+            <div class="nav-grid">
+                <a href="installation-guide/INSTALACION_RAPIDA.md" class="nav-card">
+                    <span class="emoji">⚡</span>
+                    <h3>Instalación Rápida</h3>
+                    <p>Guía de 3 pasos para instalar en minutos</p>
+                </a>
+
+                <a href="installation-guide/INSTALACION_COMPLETA.md" class="nav-card">
+                    <span class="emoji">📋</span>
+                    <h3>Guía Completa</h3>
+                    <p>Instrucciones detalladas y solución de problemas</p>
+                </a>
+
+                <a href="releases/VERSION_INFO.md" class="nav-card">
+                    <span class="emoji">📦</span>
+                    <h3>Información de Versión</h3>
+                    <p>Detalles técnicos y especificaciones</p>
+                </a>
+
+                <a href="releases/CHANGELOG.md" class="nav-card">
+                    <span class="emoji">📝</span>
+                    <h3>Historial de Cambios</h3>
+                    <p>Novedades y actualizaciones</p>
+                </a>
+
+                <a href="screenshots/" class="nav-card">
+                    <span class="emoji">📸</span>
+                    <h3>Capturas de Pantalla</h3>
+                    <p>Galería de imágenes de la aplicación</p>
+                </a>
+
+                <a href="assets/" class="nav-card">
+                    <span class="emoji">🎨</span>
+                    <h3>Recursos y Assets</h3>
+                    <p>Iconos, gráficos y especificaciones</p>
+                </a>
+            </div>
+
+            <div class="specs">
+                <h3>📊 Especificaciones Rápidas</h3>
+                <div class="spec-item">
+                    <strong>Versión Android:</strong>
+                    <span>5.0+ (API 21+)</span>
+                </div>
+                <div class="spec-item">
+                    <strong>Tamaño del APK:</strong>
+                    <span>930 KB</span>
+                </div>
+                <div class="spec-item">
+                    <strong>RAM Mínima:</strong>
+                    <span>1 GB</span>
+                </div>
+                <div class="spec-item">
+                    <strong>Espacio Requerido:</strong>
+                    <span>50 MB</span>
+                </div>
+                <div class="spec-item">
+                    <strong>Internet:</strong>
+                    <span>No requerido</span>
+                </div>
+                <div class="spec-item">
+                    <strong>Juegos Incluidos:</strong>
+                    <span>27 juegos</span>
+                </div>
+            </div>
+
+            <h3>🎮 Juegos Destacados</h3>
+            <div class="games-grid">
+                <div class="game-tag">🏀 Atrapa Bolas</div>
+                <div class="game-tag">🐦 Flappy Bird</div>
+                <div class="game-tag">🏍️ Moto Desierto</div>
+                <div class="game-tag">🧠 Memoria</div>
+                <div class="game-tag">🧮 Math Catcher</div>
+                <div class="game-tag">🐍 Serpiente</div>
+                <div class="game-tag">🧩 Sokoban</div>
+                <div class="game-tag">🎯 4 en Raya</div>
+                <div class="game-tag">🔤 Ahorcado</div>
+                <div class="game-tag">❓ Quiz</div>
+                <div class="game-tag">🚀 Nave Espacial</div>
+                <div class="game-tag">+ 16 juegos más</div>
+            </div>
+
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #2196f3;">
+                <h3 style="margin: 0 0 10px 0; color: #1976d2;">💡 Características Principales</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Sin publicidad</strong> - Juega sin interrupciones</li>
+                    <li><strong>Funciona offline</strong> - No necesita internet una vez instalado</li>
+                    <li><strong>Controles táctiles</strong> - Optimizado para dispositivos móviles</li>
+                    <li><strong>Educativo</strong> - Juegos que enseñan mientras diviertes</li>
+                    <li><strong>Código abierto</strong> - Transparente y auditable</li>
+                    <li><strong>Gratuito</strong> - Sin costos ocultos ni compras dentro de la app</li>
+                </ul>
+            </div>
+
+            <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin: 30px 0; border-left: 4px solid #ff9800;">
+                <h3 style="margin: 0 0 10px 0; color: #f57c00;">⚠️ Nota Importante</h3>
+                <p style="margin: 0;">
+                    Este APK no está firmado digitalmente ya que es una versión de desarrollo. 
+                    Necesitarás habilitar "Orígenes desconocidos" en tu dispositivo Android para instalarlo.
+                    El código fuente está disponible públicamente para revisión.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>🌟 ¡Gracias por probar los Juegos de Bruno y Vega! 🌟</strong></p>
+            <p style="margin: 5px 0 0 0; opacity: 0.7;">
+                📧 ¿Problemas o sugerencias? 
+                <a href="https://github.com/ChechuJA/mi-apk/issues" style="color: #1976d2;">Reporta en GitHub</a>
+            </p>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.5;">
+                Última actualización: Septiembre 2024 • Versión 1.0.0
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Detectar si está en un dispositivo Android y mostrar ayuda contextual
+        if (navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+            console.log("Dispositivo Android detectado - Mostrando ayuda específica");
+            
+            // Agregar un banner específico para Android
+            const androidBanner = document.createElement('div');
+            androidBanner.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #4caf50;
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                max-width: 300px;
+                z-index: 1000;
+                animation: slideIn 0.5s ease-out;
+            `;
+            
+            androidBanner.innerHTML = `
+                <strong>📱 Android detectado</strong><br>
+                <small>¡Puedes descargar e instalar la APK directamente!</small>
+                <button onclick="this.parentElement.style.display='none'" 
+                        style="float: right; background: none; border: none; color: white; cursor: pointer;">×</button>
+            `;
+            
+            document.body.appendChild(androidBanner);
+            
+            // Agregar animación
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    </script>
+</body>
+</html>

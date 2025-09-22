@@ -1,0 +1,38 @@
+# Dependencies and virtual environments
+node_modules/
+env/
+venv/
+.env
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+.cache/
+
+# APK development files (keep originals in android-apk/releases/)
+*.keystore
+*.jks
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Local configuration
+config.local.*
+.env.local
