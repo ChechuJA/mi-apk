@@ -1,0 +1,17 @@
+{
+  "name": "mi-apk",
+  "version": "1.0.0",
+  "description": "Una colección de juegos educativos y divertidos desarrollada como Progressive Web App (PWA) que puede instalarse como aplicación Android nativa.",
+  "main": "game-utils.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "clean-css-cli": "^5.6.3",
+    "html-minifier-terser": "^7.2.0",
+    "terser": "^5.44.0"
+  }
+}

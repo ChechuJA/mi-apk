@@ -1,17 +1,136 @@
 # 📋 Información de Versión
 
-## Versión Actual: v1.0.2
+## Versión Actual: v1.0.3 (Fixed APK)
 **Fecha de lanzamiento:** 22 September 2025  
-**Tipo:** Release automático
-**Build:** 
+**Tipo:** Release de corrección crítica  
+**Build:** Issue #18 Fix
 
 ## 📦 Archivos Incluidos
 
-### APK Principal
-- **Archivo:** `Bruno_y_Vega_v1.0.2.apk`
-- **Tamaño:** 5.4M
-- **Tipo:** APK optimizado sin firmar
+### APK Principal  
+- **Archivo:** `Bruno y Vega-unsigned.apk`
+- **Tamaño:** 5.5M
+- **Tipo:** APK con estructura Android válida
 - **Arquitectura:** Universal (todas las arquitecturas)
+
+## 🎮 Contenido de la Aplicación
+
+### Juegos Incluidos
+- 🎯 **Arkanoid** - Controles táctiles horizontales
+- 🪂 **Paracaidista** - Controles de acción y movimiento
+- 🏆 **Laberinto** - Controles direccionales (4 direcciones)  
+- 📦 **Sokoban** - Controles direccionales optimizados
+- 🐍 **Serpiente** - Controles táctiles direccionales
+- 🚀 **Nave Exploradora** - Controles complejos
+- 🐦 **Flappy** - Control de acción simple
+- 🎪 **Juego de Habilidad** - Controles direccionales
+- 🍓 **Recoge Moras** - Controles direccionales
+- 🌾 **Cañaveras** - Controles direccionales
+- 🏍️ **Moto Desierto** - Controles de acción
+- 👤 **Alonso Noel** - Controles complejos
+- 🍷 **Alcalá Cañas Tapas** - Controles direccionales
+- 🚶 **Sonseca Camino** - Controles direccionales
+- 💃 **Vega Bailarina** - Controles direccionales
+- 🌱 **Huerto** - Controles táctiles
+- ❓ **Quiz** - Interfaz táctil
+- ⭕ **4 en Raya** - Interfaz táctil
+- 🔤 **Ahorcado** - Interfaz táctil
+- 🧠 **Memoria** - Interfaz táctil
+
+## 🔧 Especificaciones Técnicas
+
+### Requisitos del Sistema
+- **Android:** 5.0 (API 21) o superior
+- **RAM:** 1 GB mínimo (recomendado 2 GB)
+- **Almacenamiento:** 100 MB libres
+- **Internet:** Conexión opcional para futuras actualizaciones
+
+### Características
+- ✅ **APK válido** con AndroidManifest.xml
+- ✅ **Controles táctiles** optimizados para móvil
+- ✅ **Detección automática** de ambiente móvil/APK
+- ✅ **Interfaz responsive** adaptada a pantallas táctiles
+- ✅ **Sin permisos excesivos** - solo Internet y almacenamiento básico
+
+## 🚀 Novedades en v1.0.3 (CRÍTICO)
+
+### 🔧 Correcciones Críticas
+- ✅ **SOLUCIONADO**: APK ahora tiene estructura Android válida con AndroidManifest.xml
+- ✅ **SOLUCIONADO**: Controles móviles funcionan correctamente en dispositivos táctiles
+- ✅ **MEJORADO**: Detección automática de ambiente APK/móvil
+- ✅ **OPTIMIZADO**: Tamaño reducido eliminando archivos innecesarios
+- ✅ **AÑADIDO**: Meta-datos Android proper para instalación
+
+### 🎮 Mejoras en Controles Móviles
+- ✅ Detección mejorada de dispositivos táctiles
+- ✅ Forzar controles táctiles en ambiente APK
+- ✅ Controles específicos por tipo de juego
+- ✅ Prevención de zoom accidental
+- ✅ Interfaz optimizada para pantallas pequeñas
+
+## 📜 Historial de Versiones
+
+### v1.0.3 (22 Sep 2025) - **CORRECCIÓN CRÍTICA**
+- 🔧 APK con estructura Android válida
+- 🎮 Controles móviles corregidos
+- 📱 Detección mejorada de dispositivos
+
+### v1.0.2 (22 Sep 2025)
+- 🎯 Build automático optimizado
+- 📦 Múltiples niveles de optimización
+
+### v1.0.1 (22 Sep 2025)  
+- 🚀 Release inicial
+- 🎮 Colección de juegos educativos
+
+## 🛠️ Información de Compilación
+
+### Herramientas Utilizadas
+- **GitHub Actions** - CI/CD automatizado
+- **Node.js** - Optimización de assets
+- **Terser** - Minificación de JavaScript
+- **Android Tools** - Estructura APK válida
+- **PWA Technologies** - Aplicación web progresiva
+
+### Build Configuration
+```json
+{
+  "version": "1.0.3",
+  "build": "critical-fix",
+  "optimization": "standard",
+  "minification": "enabled",
+  "mobile_controls": "enhanced",
+  "android_structure": "valid"
+}
+```
+
+## 🔍 Hash de Verificación
+
+Para verificar la integridad del APK:
+
+```bash
+sha256sum "Bruno y Vega-unsigned.apk"
+```
+
+**Esperado:** (Se generará automáticamente)
+
+## 📞 Soporte y Contacto
+
+- 🐛 **Bugs:** [GitHub Issues](https://github.com/ChechuJA/mi-apk/issues)
+- 💡 **Sugerencias:** [GitHub Discussions](https://github.com/ChechuJA/mi-apk/discussions)
+- 📧 **Contacto:** Comentarios en el repositorio
+
+## 🔐 Seguridad
+
+- ✅ **APK estructurado:** Versión válida con AndroidManifest.xml
+- 🔍 **Código abierto:** Auditable en GitHub
+- 🚫 **Sin tracking:** No recopila datos personales
+- ✅ **Sin ads:** Completamente gratuito
+- 🔒 **Permisos mínimos:** Solo los esenciales para funcionamiento
+- 📱 **Controles seguros:** Sin acceso a datos sensibles
+
+---
+*Generado automáticamente - Última actualización: 22 September 2025*
 
 ## 🎮 Contenido de la Aplicación
 

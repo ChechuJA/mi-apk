@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-environment="apk">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Juegos en iframe</title>
+  <script src="mobile-controls.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -76,5 +77,14 @@
   <footer>
     <p>&copy; 2025 Juegos en iframe</p>
   </footer>
+  
+  <script>
+    // Initialize mobile controls for iframe games
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.initMobileControls) {
+        window.initMobileControls('tap'); // Use tap controls for iframe games
+      }
+    });
+  </script>
 </body>
 </html>

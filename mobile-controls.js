@@ -83,21 +83,38 @@ class MobileControls {
   }
   
   detectMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           ('ontouchstart' in window) ||
-           (navigator.maxTouchPoints > 0);
+    // Enhanced mobile detection including APK WebView environments
+    const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasTouchSupport = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isWebView = window.navigator.userAgent.includes('wv');
+    const isFileProtocol = window.location.protocol === 'file:';
+    const isAPKEnvironment = document.documentElement.getAttribute('data-environment') === 'apk';
+    
+    // Consider it mobile if any of these conditions are true
+    const isMobile = mobileUserAgent || hasTouchSupport || isWebView || isFileProtocol || isAPKEnvironment;
+    
+    console.log('Mobile detection:', {
+      mobileUserAgent,
+      hasTouchSupport,
+      isWebView,
+      isFileProtocol,
+      isAPKEnvironment,
+      result: isMobile
+    });
+    
+    return isMobile;
   }
   
   init(gameType, canvas) {
     this.gameCanvas = canvas;
-    
+
     if (!this.isMobile) {
       console.log('MobileControls: Desktop device detected, skipping mobile controls');
       return; // No crear controles en desktop
     }
     
     console.log('MobileControls: Initializing for game type:', gameType);
-    
+
     const config = this.gameConfigs[this.gameTypeMap[gameType] || 'directional'];
     
     // Ensure cleanup of any existing controls first
