@@ -56,12 +56,12 @@ jobs:
         # Create build directory
         mkdir -p build/webapp
         
-        # Copy and optimize assets
-        cp -r . build/webapp/
+        # Copy and optimize assets (exclude build directory to prevent recursion)
+        find . -maxdepth 1 -not -name "." -not -name "build" -not -name ".git" -not -name ".github" | xargs -I {} cp -r {} build/webapp/
         cd build/webapp
         
         # Remove unnecessary files
-        rm -rf .git .github node_modules package*.json build
+        rm -rf .git .github node_modules package*.json
         
         case $OPTIMIZATION_LEVEL in
           "minimal")

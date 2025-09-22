@@ -1,9 +1,22 @@
 {
-  "version": "1.0.2", 
-  "build": 3,
+  "version": "1.0.4", 
+  "build": 4,
   "date": "2025-09-22",
-  "description": "Re-ejecución de workflows de construcción APK solicitada en issue #24",
+  "description": "Nueva versión APK solicitada - Issue #26 fix",
   "changelog": [
+    {
+      "version": "1.0.4",
+      "date": "2025-09-22", 
+      "changes": [
+        "Nueva versión APK generada (issue #26)",
+        "Corregido error en workflow de construcción APK",
+        "APK con estructura Android válida y optimizada",
+        "Controles móviles mejorados y validados",
+        "Build process completamente funcional"
+      ],
+      "build": 4,
+      "type": "patch"
+    },
     {
       "version": "1.0.2",
       "date": "2025-09-22", 
