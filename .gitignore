@@ -27,6 +27,9 @@ Thumbs.db
 # APK development files (keep originals in android-apk/releases/)
 *.keystore
 *.jks
+build-proper-apk/
+classes.dex
+resources.arsc
 
 # Python cache
 __pycache__/
