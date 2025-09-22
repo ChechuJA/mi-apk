@@ -135,13 +135,21 @@
 
 ## 📞 ¿Necesitas Ayuda?
 
-Si sigues teniendo problemas:
+Si tienes problemas con la instalación:
 
-1. **Revisa esta guía nuevamente**
-2. **Busca tu problema específico** en la sección de solución de problemas
-3. **Reporta el problema** en [GitHub Issues](https://github.com/ChechuJA/mi-apk/issues)
-4. **Incluye información** sobre tu dispositivo y el error específico
+1. **🛠️ [Guía completa de solución de errores](SOLUCION_ERRORES.md)** ← **¡NUEVO!**
+2. **Revisa la sección de problemas comunes** arriba  
+3. **Consulta la [guía rápida](INSTALACION_RAPIDA.md)** para usuarios experimentados
+4. **Reporta un issue** en [GitHub Issues](https://github.com/ChechuJA/mi-apk/issues)
+
+### 🆘 Errores más comunes:
+- **No se puede instalar**: Habilitar "Orígenes desconocidos"
+- **Error al analizar**: Volver a descargar el APK
+- **App se cierra**: Actualizar Android WebView
+- **Instalación bloqueada**: Desactivar temporalmente Play Protect
+
+**📖 [Ver guía completa de errores →](SOLUCION_ERRORES.md)**
 
 ---
 
-**¡Disfruta explorando el mundo de Bruno y Vega! 🌟**
+**🎮 ¡Disfruta jugando con Bruno y Vega! 🎮**

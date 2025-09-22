@@ -1,5 +1,17 @@
 # 🎮 Juegos de Bruno y Vega - Android APK
 
+![APK Testing](https://github.com/ChechuJA/mi-apk/workflows/🧪%20APK%20Testing%20Pipeline/badge.svg)
+![Quick Validation](https://github.com/ChechuJA/mi-apk/workflows/⚡%20Quick%20APK%20Validation/badge.svg)
+![Docker Testing](https://github.com/ChechuJA/mi-apk/workflows/🐳%20Docker%20APK%20Testing/badge.svg)
+
+## 🔍 Estado de Validación APK
+
+✅ **APK Testing Pipeline**: Validación automática con emuladores Android  
+✅ **Quick Validation**: Verificación rápida de estructura y formato  
+✅ **Docker Testing**: Testing en contenedor Docker (solicitado en issue #6)
+
+**🛡️ Garantía de Calidad**: Cada APK pasa múltiples validaciones antes de estar disponible para descarga.
+
 ## 📱 Descarga e Instalación
 
 ¡Bienvenid@ al mundo de Bruno y Vega! Esta es una colección de juegos educativos y divertidos que puedes instalar directamente en tu dispositivo Android.

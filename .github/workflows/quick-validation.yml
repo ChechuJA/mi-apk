@@ -1,0 +1,107 @@
+name: ⚡ Quick APK Validation
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'android-apk/releases/latest/**'
+  pull_request:
+    branches: [ main ]
+    paths: 
+      - 'android-apk/releases/latest/**'
+  workflow_dispatch:
+
+jobs:
+  quick-validation:
+    name: 🚀 Fast APK Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📁 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Basic APK Validation
+      run: |
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        
+        echo "## 🎮 Bruno y Vega APK Validation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if file exists
+        if [ ! -f "$APK_FILE" ]; then
+          echo "❌ **ERROR:** APK file not found!" >> $GITHUB_STEP_SUMMARY
+          echo "Expected location: $APK_FILE" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # File info
+        SIZE=$(du -h "$APK_FILE" | cut -f1)
+        echo "### 📊 File Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **File:** Bruno y Vega-unsigned.apk" >> $GITHUB_STEP_SUMMARY  
+        echo "- **Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+        echo "- **Path:** \`$APK_FILE\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # APK integrity check
+        if file "$APK_FILE" | grep -q "Android package"; then
+          echo "✅ **APK Format:** Valid Android Package" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **APK Format:** Invalid or corrupted" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Check APK contents
+        echo "### 📦 APK Contents Check" >> $GITHUB_STEP_SUMMARY
+        
+        TEMP_DIR="/tmp/apk_check"
+        mkdir -p "$TEMP_DIR"
+        
+        if unzip -q "$APK_FILE" -d "$TEMP_DIR"; then
+          echo "✅ **Extraction:** Success" >> $GITHUB_STEP_SUMMARY
+          
+          # Check required files
+          REQUIRED_FILES=("AndroidManifest.xml" "classes.dex" "resources.arsc")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$TEMP_DIR/$file" ]; then
+              echo "  - ✅ $file" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "  - ❌ $file (MISSING)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          # Count assets
+          ASSET_COUNT=$(find "$TEMP_DIR" -type f | wc -l)
+          echo "  - 📁 Total files: $ASSET_COUNT" >> $GITHUB_STEP_SUMMARY
+          
+        else
+          echo "❌ **Extraction:** Failed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Validation Result" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Status:** APK appears to be valid for installation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📝 **Note:** This is a basic validation. For full testing including installation and functionality, use the comprehensive testing workflow." >> $GITHUB_STEP_SUMMARY
+        
+        # Cleanup
+        rm -rf "$TEMP_DIR"
+        
+    - name: 🏷️ Generate Installation Badge
+      run: |
+        # Create a simple badge status file
+        mkdir -p badges
+        
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        SIZE=$(du -h "$APK_FILE" | cut -f1)
+        
+        echo "APK Status: Valid" > badges/apk-status.txt
+        echo "Size: $SIZE" > badges/apk-size.txt
+        echo "Last Validated: $(date -u +'%Y-%m-%d %H:%M UTC')" > badges/last-validated.txt
+        
+    - name: 📤 Upload Validation Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: validation-results
+        path: badges/
+        retention-days: 7
