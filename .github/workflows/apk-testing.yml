@@ -156,10 +156,10 @@ jobs:
         emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
         script: |
+          set -e
           echo "🔍 Starting APK installation test on Android API ${{ matrix.api-level }}"
           
           APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
-          PACKAGE_NAME="com.brunoyegames"
           
           # Wait for emulator to be ready
           adb wait-for-device
@@ -169,47 +169,62 @@ jobs:
           adb shell getprop ro.build.version.release
           adb shell getprop ro.product.model
           
+          # Get list of installed packages before installation
+          echo "📋 Getting current package list..."
+          adb shell pm list packages > /tmp/packages_before.txt
+          
           # Install APK
           echo "📦 Installing APK..."
           if adb install -r "$APK_FILE"; then
             echo "✅ APK installed successfully"
-            
-            # Check if app is installed
-            if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
-              echo "✅ Package found in system"
-            else
-              echo "⚠️ Package not found, checking all Bruno packages:"
-              adb shell pm list packages | grep -i bruno || echo "No Bruno packages found"
-            fi
-            
-            # Try to launch the app (if we can determine the main activity)
-            echo "🚀 Attempting to launch app..."
-            # List activities for the package
-            MAIN_ACTIVITY=$(adb shell dumpsys package "$PACKAGE_NAME" | grep -A 1 "android.intent.action.MAIN" | grep "$PACKAGE_NAME" | head -1 | awk '{print $2}' | cut -d'/' -f2 || echo "MainActivity")
-            
-            if [ ! -z "$MAIN_ACTIVITY" ]; then
-              echo "📱 Launching activity: $MAIN_ACTIVITY"
-              adb shell am start -n "$PACKAGE_NAME/$MAIN_ACTIVITY" || echo "⚠️ Could not launch main activity"
-              
-              # Wait a bit and check if app is running
-              sleep 5
-              if adb shell dumpsys activity activities | grep -q "$PACKAGE_NAME"; then
-                echo "✅ App is running successfully"
-              else
-                echo "⚠️ App may not be running properly"
-              fi
-            else
-              echo "⚠️ Could not determine main activity"
-            fi
-            
-            # Uninstall for cleanup
-            echo "🧹 Cleaning up..."
-            adb uninstall "$PACKAGE_NAME" || echo "Package was not installed or already removed"
-            
           else
             echo "❌ APK installation failed"
             exit 1
           fi
+          
+          # Get list of installed packages after installation and find the newly installed one
+          echo "🔍 Finding newly installed package..."
+          adb shell pm list packages > /tmp/packages_after.txt
+          NEW_PACKAGE=$(diff /tmp/packages_before.txt /tmp/packages_after.txt | grep "^>" | sed 's/^> package://' || echo "")
+          
+          if [ -z "$NEW_PACKAGE" ]; then
+            echo "⚠️ Could not determine the installed package name, trying common patterns..."
+            # Try common package name patterns
+            POTENTIAL_PACKAGES=$(adb shell pm list packages | grep -E "(bruno|vega|juego)" || echo "")
+            if [ ! -z "$POTENTIAL_PACKAGES" ]; then
+              echo "📦 Found potential packages: $POTENTIAL_PACKAGES"
+              NEW_PACKAGE=$(echo "$POTENTIAL_PACKAGES" | head -1 | sed 's/package://')
+            else
+              echo "❌ No packages found matching expected patterns"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Package installed: $NEW_PACKAGE"
+          
+          # Try to launch the app
+          echo "🚀 Attempting to launch app..."
+          MAIN_ACTIVITY=$(adb shell dumpsys package "$NEW_PACKAGE" | grep -A 1 "android.intent.action.MAIN" | grep "$NEW_PACKAGE" | head -1 | awk '{print $2}' | cut -d'/' -f2 || echo "MainActivity")
+          
+          if [ ! -z "$MAIN_ACTIVITY" ] && [ "$MAIN_ACTIVITY" != "MainActivity" ]; then
+            echo "📱 Launching activity: $MAIN_ACTIVITY"
+            adb shell am start -n "$NEW_PACKAGE/$MAIN_ACTIVITY" || echo "⚠️ Could not launch main activity"
+            
+            # Wait a bit and check if app is running
+            sleep 5
+            if adb shell dumpsys activity activities | grep -q "$NEW_PACKAGE"; then
+              echo "✅ App is running successfully"
+            else
+              echo "⚠️ App may not be running properly"
+            fi
+          else
+            echo "⚠️ Could not determine main activity, trying to launch with monkey"
+            adb shell monkey -p "$NEW_PACKAGE" -c android.intent.category.LAUNCHER 1 || echo "⚠️ Could not launch app with monkey"
+          fi
+          
+          # Uninstall for cleanup
+          echo "🧹 Cleaning up..."
+          adb uninstall "$NEW_PACKAGE" || echo "Package was not installed or already removed"
 
   test-report:
     name: 📊 Generate Test Report
