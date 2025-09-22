@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "build": 1,
+  "date": "2024-09-22",
+  "description": "Initial version with 27 games",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2024-09-22",
+      "changes": [
+        "Primera versión con 27 juegos educativos",
+        "Soporte completo offline con Service Worker",
+        "Controles táctiles optimizados",
+        "Interfaz responsive para móviles"
+      ]
+    }
+  ]
+}

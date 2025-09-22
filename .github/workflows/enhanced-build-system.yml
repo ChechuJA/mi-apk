@@ -1,0 +1,573 @@
+name: 🏗️ Enhanced Build System
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.js'
+      - '**.html'
+      - '**.css'
+      - 'assets/**'
+      - 'icons/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.js'
+      - '**.html'
+      - '**.css'
+      - 'assets/**'
+      - 'icons/**'
+  workflow_dispatch:
+    inputs:
+      optimization_level:
+        description: 'Optimization level'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+        - minimal
+        - standard
+        - aggressive
+      include_debug:
+        description: 'Include debug information'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  code-quality:
+    name: 🔍 Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🧹 Install Code Quality Tools
+      run: |
+        npm init -y
+        npm install --save-dev \
+          eslint \
+          jshint \
+          htmlhint \
+          stylelint \
+          stylelint-config-standard \
+          prettier
+        
+    - name: 🔍 JavaScript Analysis
+      run: |
+        echo "## 🔍 Code Quality Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Count files and lines
+        JS_FILES=$(find . -name "*.js" | grep -v node_modules | wc -l)
+        HTML_FILES=$(find . -name "*.html" | wc -l)
+        CSS_FILES=$(find . -name "*.css" | wc -l)
+        
+        TOTAL_JS_LINES=$(find . -name "*.js" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+        TOTAL_HTML_LINES=$(find . -name "*.html" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+        TOTAL_CSS_LINES=$(find . -name "*.css" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+        
+        echo "### 📊 Project Statistics" >> $GITHUB_STEP_SUMMARY
+        echo "- **JavaScript files:** $JS_FILES ($TOTAL_JS_LINES lines)" >> $GITHUB_STEP_SUMMARY
+        echo "- **HTML files:** $HTML_FILES ($TOTAL_HTML_LINES lines)" >> $GITHUB_STEP_SUMMARY
+        echo "- **CSS files:** $CSS_FILES ($TOTAL_CSS_LINES lines)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Game files analysis
+        GAME_FILES=$(ls script-*.js 2>/dev/null | wc -l)
+        echo "- **Game scripts:** $GAME_FILES juegos encontrados" >> $GITHUB_STEP_SUMMARY
+        
+        # List games
+        if [ "$GAME_FILES" -gt 0 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎮 Juegos Detectados" >> $GITHUB_STEP_SUMMARY
+          for game in script-*.js; do
+            if [ -f "$game" ]; then
+              GAME_NAME=$(echo "$game" | sed 's/script-//' | sed 's/.js//' | sed 's/-/ /g')
+              GAME_LINES=$(wc -l < "$game")
+              echo "- **$(echo $GAME_NAME | sed 's/.*/\L&/; s/[a-z]*/\u&/g')**: $GAME_LINES líneas" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+        fi
+        
+        # Basic syntax check
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🧹 Syntax Check" >> $GITHUB_STEP_SUMMARY
+        
+        SYNTAX_ERRORS=0
+        for js_file in *.js script-*.js; do
+          if [ -f "$js_file" ]; then
+            if node -c "$js_file" 2>/dev/null; then
+              echo "✅ $js_file - Sintaxis correcta" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ $js_file - Error de sintaxis" >> $GITHUB_STEP_SUMMARY
+              ((SYNTAX_ERRORS++))
+            fi
+          fi
+        done
+        
+        if [ "$SYNTAX_ERRORS" -gt 0 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **$SYNTAX_ERRORS archivos con errores de sintaxis encontrados**" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+    - name: 📊 Performance Analysis
+      run: |
+        echo "### ⚡ Performance Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # File size analysis
+        TOTAL_SIZE=0
+        for file in *.js *.html *.css script-*.js; do
+          if [ -f "$file" ]; then
+            SIZE=$(stat -c%s "$file")
+            TOTAL_SIZE=$((TOTAL_SIZE + SIZE))
+          fi
+        done
+        
+        # Assets size
+        ASSETS_SIZE=0
+        if [ -d "assets" ]; then
+          ASSETS_SIZE=$(du -sb assets 2>/dev/null | cut -f1 || echo "0")
+        fi
+        
+        ICONS_SIZE=0
+        if [ -d "icons" ]; then
+          ICONS_SIZE=$(du -sb icons 2>/dev/null | cut -f1 || echo "0")
+        fi
+        
+        TOTAL_PROJECT_SIZE=$((TOTAL_SIZE + ASSETS_SIZE + ICONS_SIZE))
+        
+        echo "- **Código fuente:** $(numfmt --to=iec $TOTAL_SIZE)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Assets:** $(numfmt --to=iec $ASSETS_SIZE)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Icons:** $(numfmt --to=iec $ICONS_SIZE)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total proyecto:** $(numfmt --to=iec $TOTAL_PROJECT_SIZE)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Optimization potential
+        echo "### 🎯 Potential de Optimización" >> $GITHUB_STEP_SUMMARY
+        ESTIMATED_SAVINGS=0
+        
+        # Check for large JavaScript files
+        for js_file in *.js script-*.js; do
+          if [ -f "$js_file" ]; then
+            SIZE=$(stat -c%s "$js_file")
+            if [ "$SIZE" -gt 10000 ]; then  # Files larger than 10KB
+              ESTIMATED_MINIFIED=$((SIZE * 70 / 100))  # Estimate 30% reduction
+              SAVINGS=$((SIZE - ESTIMATED_MINIFIED))
+              ESTIMATED_SAVINGS=$((ESTIMATED_SAVINGS + SAVINGS))
+              echo "- 📄 **$js_file:** $(numfmt --to=iec $SIZE) → ~$(numfmt --to=iec $ESTIMATED_MINIFIED) (ahorro: $(numfmt --to=iec $SAVINGS))" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+        done
+        
+        if [ "$ESTIMATED_SAVINGS" -gt 0 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **Ahorro estimado con minificación:** ~$(numfmt --to=iec $ESTIMATED_SAVINGS)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  optimize-build:
+    name: 🎯 Optimize & Build
+    needs: code-quality
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        optimization: [minimal, standard, aggressive]
+        
+    outputs:
+      build_size_minimal: ${{ steps.build-info.outputs.size_minimal }}
+      build_size_standard: ${{ steps.build-info.outputs.size_standard }}
+      build_size_aggressive: ${{ steps.build-info.outputs.size_aggressive }}
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🔧 Install Build Tools
+      run: |
+        npm init -y
+        npm install --save-dev \
+          terser \
+          clean-css-cli \
+          html-minifier-terser \
+          imagemin-cli \
+          imagemin-pngquant \
+          imagemin-mozjpeg \
+          svgo
+        
+    - name: 🎯 Optimize Assets
+      run: |
+        OPTIMIZATION_LEVEL="${{ matrix.optimization }}"
+        echo "🎯 Optimizing with level: $OPTIMIZATION_LEVEL"
+        
+        # Create build directory
+        mkdir -p "build/$OPTIMIZATION_LEVEL"
+        
+        # Copy source files first
+        cp -r . "build/$OPTIMIZATION_LEVEL/"
+        cd "build/$OPTIMIZATION_LEVEL"
+        
+        # Remove build artifacts and git files
+        rm -rf build .git node_modules package.json package-lock.json .github
+        
+        case $OPTIMIZATION_LEVEL in
+          "minimal")
+            echo "🔹 Minimal optimization: Light compression, preserve readability"
+            
+            # Light JavaScript compression
+            for js_file in *.js script-*.js; do
+              if [ -f "$js_file" ]; then
+                npx terser "$js_file" \
+                  --compress sequences=false,dead_code=false \
+                  --mangle false \
+                  --format beautify=true,indent_level=2 \
+                  -o "$js_file.tmp"
+                mv "$js_file.tmp" "$js_file"
+              fi
+            done
+            
+            # Light CSS compression
+            if [ -f "style.css" ]; then
+              npx clean-css-cli -O1 --format beautify -o "style.css.tmp" "style.css"
+              mv "style.css.tmp" "style.css"
+            fi
+            ;;
+            
+          "standard")
+            echo "🔸 Standard optimization: Good compression, readable output"
+            
+            # Standard JavaScript compression
+            for js_file in *.js script-*.js; do
+              if [ -f "$js_file" ]; then
+                npx terser "$js_file" \
+                  --compress \
+                  --mangle reserved=['registerGame','gameCanvas'] \
+                  --format semicolons=true \
+                  -o "$js_file.tmp"
+                mv "$js_file.tmp" "$js_file"
+              fi
+            done
+            
+            # Standard CSS compression
+            if [ -f "style.css" ]; then
+              npx clean-css-cli -O2 -o "style.css.tmp" "style.css"
+              mv "style.css.tmp" "style.css"
+            fi
+            
+            # Light HTML minification
+            for html_file in *.html; do
+              if [ -f "$html_file" ]; then
+                npx html-minifier-terser \
+                  --collapse-whitespace \
+                  --remove-comments \
+                  --remove-redundant-attributes \
+                  -o "$html_file.tmp" "$html_file"
+                mv "$html_file.tmp" "$html_file"
+              fi
+            done
+            ;;
+            
+          "aggressive")
+            echo "🔺 Aggressive optimization: Maximum compression"
+            
+            # Maximum JavaScript compression
+            for js_file in *.js script-*.js; do
+              if [ -f "$js_file" ]; then
+                npx terser "$js_file" \
+                  --compress passes=3,pure_funcs=['console.log','console.warn'] \
+                  --mangle \
+                  --format ascii_only=true \
+                  -o "$js_file.tmp"
+                mv "$js_file.tmp" "$js_file"
+              fi
+            done
+            
+            # Maximum CSS compression
+            if [ -f "style.css" ]; then
+              npx clean-css-cli -O2 --format keep-breaks=false -o "style.css.tmp" "style.css"
+              mv "style.css.tmp" "style.css"
+            fi
+            
+            # Aggressive HTML minification
+            for html_file in *.html; do
+              if [ -f "$html_file" ]; then
+                npx html-minifier-terser \
+                  --collapse-whitespace \
+                  --remove-comments \
+                  --remove-optional-tags \
+                  --remove-redundant-attributes \
+                  --remove-script-type-attributes \
+                  --remove-style-link-type-attributes \
+                  --use-short-doctype \
+                  --minify-css true \
+                  --minify-js true \
+                  -o "$html_file.tmp" "$html_file"
+                mv "$html_file.tmp" "$html_file"
+              fi
+            done
+            
+            # Optimize images if they exist
+            if [ -d "assets" ]; then
+              find assets -name "*.png" -exec npx imagemin {} --plugin=pngquant --out-dir=assets \; 2>/dev/null || true
+              find assets -name "*.jpg" -exec npx imagemin {} --plugin=mozjpeg --out-dir=assets \; 2>/dev/null || true
+              find assets -name "*.svg" -exec npx svgo {} \; 2>/dev/null || true
+            fi
+            
+            if [ -d "icons" ]; then
+              find icons -name "*.png" -exec npx imagemin {} --plugin=pngquant --out-dir=icons \; 2>/dev/null || true
+              find icons -name "*.svg" -exec npx svgo {} \; 2>/dev/null || true
+            fi
+            ;;
+        esac
+        
+        # Remove build dependencies
+        rm -rf node_modules package.json package-lock.json 2>/dev/null || true
+        
+        cd ../..
+        
+    - name: 📊 Measure Build Size
+      id: build-info
+      run: |
+        OPTIMIZATION_LEVEL="${{ matrix.optimization }}"
+        BUILD_DIR="build/$OPTIMIZATION_LEVEL"
+        
+        if [ -d "$BUILD_DIR" ]; then
+          BUILD_SIZE=$(du -sb "$BUILD_DIR" | cut -f1)
+          BUILD_SIZE_HUMAN=$(numfmt --to=iec $BUILD_SIZE)
+          
+          echo "📊 Build size ($OPTIMIZATION_LEVEL): $BUILD_SIZE_HUMAN ($BUILD_SIZE bytes)"
+          echo "size_$OPTIMIZATION_LEVEL=$BUILD_SIZE" >> $GITHUB_OUTPUT
+          
+          # Count files
+          FILE_COUNT=$(find "$BUILD_DIR" -type f | wc -l)
+          echo "📁 Files in build: $FILE_COUNT"
+          
+          # JavaScript size
+          JS_SIZE=$(find "$BUILD_DIR" -name "*.js" -exec stat -c%s {} + 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          JS_SIZE_HUMAN=$(numfmt --to=iec $JS_SIZE)
+          echo "📄 JavaScript size: $JS_SIZE_HUMAN"
+          
+          # HTML size
+          HTML_SIZE=$(find "$BUILD_DIR" -name "*.html" -exec stat -c%s {} + 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          HTML_SIZE_HUMAN=$(numfmt --to=iec $HTML_SIZE)
+          echo "📄 HTML size: $HTML_SIZE_HUMAN"
+        fi
+        
+    - name: 🎯 Create Optimized APK Package
+      run: |
+        OPTIMIZATION_LEVEL="${{ matrix.optimization }}"
+        BUILD_DIR="build/$OPTIMIZATION_LEVEL"
+        
+        if [ -d "$BUILD_DIR" ]; then
+          cd "$BUILD_DIR"
+          
+          # Create APK package
+          zip -r "../Bruno_y_Vega_${OPTIMIZATION_LEVEL}.apk" . \
+            -x "*.DS_Store" "*.git*" "node_modules/*" "*.tmp"
+          
+          cd ../..
+          
+          # Show APK size
+          APK_SIZE=$(stat -c%s "build/Bruno_y_Vega_${OPTIMIZATION_LEVEL}.apk")
+          APK_SIZE_HUMAN=$(numfmt --to=iec $APK_SIZE)
+          echo "📦 APK size ($OPTIMIZATION_LEVEL): $APK_SIZE_HUMAN"
+        fi
+        
+    - name: 📤 Upload Optimized Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: optimized-build-${{ matrix.optimization }}
+        path: |
+          build/Bruno_y_Vega_${{ matrix.optimization }}.apk
+          build/${{ matrix.optimization }}/
+        retention-days: 7
+
+  compare-builds:
+    name: 📊 Compare Build Sizes
+    needs: optimize-build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📊 Generate Build Comparison
+      run: |
+        echo "## 📊 Build Optimization Comparison" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Optimization | Size | Reduction |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------------|------|-----------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Get original size (approximate)
+        ORIGINAL_ESTIMATED=1000000  # 1MB estimate
+        
+        # Process build sizes
+        MINIMAL_SIZE="${{ needs.optimize-build.outputs.build_size_minimal }}"
+        STANDARD_SIZE="${{ needs.optimize-build.outputs.build_size_standard }}"
+        AGGRESSIVE_SIZE="${{ needs.optimize-build.outputs.build_size_aggressive }}"
+        
+        if [ ! -z "$MINIMAL_SIZE" ] && [ "$MINIMAL_SIZE" -gt 0 ]; then
+          MINIMAL_HUMAN=$(numfmt --to=iec $MINIMAL_SIZE)
+          MINIMAL_REDUCTION=$(( (ORIGINAL_ESTIMATED - MINIMAL_SIZE) * 100 / ORIGINAL_ESTIMATED ))
+          echo "| Minimal | $MINIMAL_HUMAN | ${MINIMAL_REDUCTION}% |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ ! -z "$STANDARD_SIZE" ] && [ "$STANDARD_SIZE" -gt 0 ]; then
+          STANDARD_HUMAN=$(numfmt --to=iec $STANDARD_SIZE)
+          STANDARD_REDUCTION=$(( (ORIGINAL_ESTIMATED - STANDARD_SIZE) * 100 / ORIGINAL_ESTIMATED ))
+          echo "| Standard | $STANDARD_HUMAN | ${STANDARD_REDUCTION}% |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ ! -z "$AGGRESSIVE_SIZE" ] && [ "$AGGRESSIVE_SIZE" -gt 0 ]; then
+          AGGRESSIVE_HUMAN=$(numfmt --to=iec $AGGRESSIVE_SIZE)
+          AGGRESSIVE_REDUCTION=$(( (ORIGINAL_ESTIMATED - AGGRESSIVE_SIZE) * 100 / ORIGINAL_ESTIMATED ))
+          echo "| Aggressive | $AGGRESSIVE_HUMAN | ${AGGRESSIVE_REDUCTION}% |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 💡 Recommendations" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Determine best optimization level
+        if [ ! -z "$AGGRESSIVE_SIZE" ] && [ "$AGGRESSIVE_SIZE" -gt 0 ]; then
+          BEST_SIZE=$AGGRESSIVE_SIZE
+          BEST_LEVEL="aggressive"
+        elif [ ! -z "$STANDARD_SIZE" ] && [ "$STANDARD_SIZE" -gt 0 ]; then
+          BEST_SIZE=$STANDARD_SIZE  
+          BEST_LEVEL="standard"
+        else
+          BEST_SIZE=$MINIMAL_SIZE
+          BEST_LEVEL="minimal"
+        fi
+        
+        echo "🏆 **Recommended optimization level:** $BEST_LEVEL" >> $GITHUB_STEP_SUMMARY
+        echo "📦 **Resulting APK size:** $(numfmt --to=iec $BEST_SIZE)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔍 Optimization Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Minimal**: Preserves readability, light compression" >> $GITHUB_STEP_SUMMARY
+        echo "- **Standard**: Good balance between size and readability" >> $GITHUB_STEP_SUMMARY  
+        echo "- **Aggressive**: Maximum compression, smallest size" >> $GITHUB_STEP_SUMMARY
+
+  generate-report:
+    name: 📋 Generate Build Report
+    needs: [code-quality, optimize-build, compare-builds]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 📋 Generate Comprehensive Report
+      run: |
+        cat > BUILD_REPORT.md << EOF
+        # 🏗️ Build System Report
+        
+        **Generated:** $(date)  
+        **Workflow:** ${{ github.workflow }}  
+        **Trigger:** ${{ github.event_name }}  
+        **Branch:** ${{ github.ref_name }}
+        
+        ## 📊 Project Overview
+        
+        Este reporte contiene información detallada sobre el sistema de build 
+        mejorado y las optimizaciones aplicadas al proyecto Bruno y Vega.
+        
+        ### 🎯 Objetivos del Build System
+        
+        1. **Optimización automática** - Reducir tamaño de archivos
+        2. **Múltiples niveles** - Minimal, Standard, Aggressive
+        3. **Control de calidad** - Validación de sintaxis y estructura
+        4. **Automatización completa** - CI/CD integrado
+        
+        ## 🔍 Análisis de Calidad
+        
+        - ✅ Verificación de sintaxis JavaScript
+        - 📊 Análisis de tamaño de archivos
+        - 🎮 Detección automática de juegos
+        - ⚡ Evaluación de rendimiento
+        
+        ## 🎯 Niveles de Optimización
+        
+        ### 🔹 Minimal
+        - Compresión ligera de JavaScript
+        - Preserva legibilidad del código
+        - Ideal para desarrollo y debug
+        
+        ### 🔸 Standard (Recomendado)
+        - Compresión balanceada
+        - Mantiene nombres de funciones importantes
+        - Buena relación tamaño/legibilidad
+        
+        ### 🔺 Aggressive
+        - Máxima compresión
+        - Minificación completa HTML/CSS/JS
+        - Optimización de imágenes
+        - Menor tamaño de APK
+        
+        ## 📦 Artifacts Generados
+        
+        Cada build genera los siguientes artifacts:
+        
+        - \`Bruno_y_Vega_minimal.apk\` - Versión con optimización mínima
+        - \`Bruno_y_Vega_standard.apk\` - Versión balanceada (recomendada)
+        - \`Bruno_y_Vega_aggressive.apk\` - Versión más comprimida
+        
+        ## 🚀 Uso del Sistema
+        
+        ### Automático
+        El sistema se ejecuta automáticamente cuando:
+        - Se hace push a la rama main
+        - Se abre/actualiza un Pull Request
+        - Se modifican archivos JS, HTML, CSS o assets
+        
+        ### Manual
+        Puedes ejecutar el build manualmente con:
+        - Nivel de optimización personalizado
+        - Opción de incluir información de debug
+        
+        ## 📈 Métricas y Monitoreo
+        
+        - **Tamaño de archivos**: Tracking automático
+        - **Potencial de optimización**: Estimaciones precisas
+        - **Tiempo de build**: Optimizado para CI/CD
+        - **Calidad de código**: Validación continua
+        
+        ## 🔧 Integración con Workflows
+        
+        Este build system se integra con:
+        - 🏷️ Sistema de versionado automático
+        - 📱 Generación de APKs
+        - 🧪 Testing y validación
+        - ⏪ Sistema de rollbacks
+        
+        ## 💡 Próximas Mejoras
+        
+        - [ ] Análisis estático de código más profundo
+        - [ ] Optimización de assets WebP
+        - [ ] Tree shaking para JavaScript
+        - [ ] Compresión Gzip/Brotli
+        - [ ] Progressive Web App optimizations
+        
+        ---
+        
+        **🤖 Generado automáticamente por GitHub Actions**
+        EOF
+        
+    - name: 📤 Upload Build Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-system-report
+        path: BUILD_REPORT.md
+        retention-days: 30

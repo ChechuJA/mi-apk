@@ -1,0 +1,617 @@
+name: 🔄 Advanced PR Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  pr-info:
+    name: 📋 PR Information Analysis
+    runs-on: ubuntu-latest
+    
+    outputs:
+      pr_size: ${{ steps.analyze.outputs.pr_size }}
+      has_games: ${{ steps.analyze.outputs.has_games }}
+      has_assets: ${{ steps.analyze.outputs.has_assets }}
+      complexity: ${{ steps.analyze.outputs.complexity }}
+      version_impact: ${{ steps.analyze.outputs.version_impact }}
+    
+    steps:
+    - name: 🔍 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 📊 Analyze PR Changes
+      id: analyze
+      run: |
+        echo "📊 Analyzing PR changes..."
+        
+        # Get base commit for comparison
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        echo "## 🔄 PR Analysis Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**PR #${{ github.event.pull_request.number }}**: ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Author**: @${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: ${{ github.event.pull_request.head.ref }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get changed files
+        git diff --name-only $BASE_SHA..$HEAD_SHA > changed_files.txt
+        
+        CHANGED_COUNT=$(wc -l < changed_files.txt)
+        echo "**Files changed**: $CHANGED_COUNT" >> $GITHUB_STEP_SUMMARY
+        
+        # Analyze file types
+        JS_CHANGES=$(grep "\.js$" changed_files.txt | wc -l || echo "0")
+        HTML_CHANGES=$(grep "\.html$" changed_files.txt | wc -l || echo "0")
+        CSS_CHANGES=$(grep "\.css$" changed_files.txt | wc -l || echo "0")
+        ASSET_CHANGES=$(grep -E "\.(png|jpg|jpeg|gif|svg|ico)$" changed_files.txt | wc -l || echo "0")
+        CONFIG_CHANGES=$(grep -E "\.(json|yml|yaml|md)$" changed_files.txt | wc -l || echo "0")
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📁 File Type Breakdown" >> $GITHUB_STEP_SUMMARY
+        echo "- JavaScript: $JS_CHANGES files" >> $GITHUB_STEP_SUMMARY
+        echo "- HTML: $HTML_CHANGES files" >> $GITHUB_STEP_SUMMARY
+        echo "- CSS: $CSS_CHANGES files" >> $GITHUB_STEP_SUMMARY
+        echo "- Assets: $ASSET_CHANGES files" >> $GITHUB_STEP_SUMMARY
+        echo "- Config: $CONFIG_CHANGES files" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for game files
+        GAME_CHANGES=$(grep "script-.*\.js$" changed_files.txt | wc -l || echo "0")
+        if [ "$GAME_CHANGES" -gt 0 ]; then
+          echo "has_games=true" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎮 Game Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "**Games affected**: $GAME_CHANGES" >> $GITHUB_STEP_SUMMARY
+          
+          # List affected games
+          grep "script-.*\.js$" changed_files.txt | sed 's/script-//' | sed 's/.js$//' | while read game; do
+            GAME_NAME=$(echo "$game" | sed 's/-/ /g' | sed 's/.*/\L&/; s/[a-z]*/\u&/g')
+            echo "- 🎯 $GAME_NAME" >> $GITHUB_STEP_SUMMARY
+          done
+        else
+          echo "has_games=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Check for asset changes
+        if [ "$ASSET_CHANGES" -gt 0 ]; then
+          echo "has_assets=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_assets=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Calculate PR size and complexity
+        LINES_ADDED=$(git diff --shortstat $BASE_SHA..$HEAD_SHA | grep -o '[0-9]* insertion' | grep -o '[0-9]*' || echo "0")
+        LINES_DELETED=$(git diff --shortstat $BASE_SHA..$HEAD_SHA | grep -o '[0-9]* deletion' | grep -o '[0-9]*' || echo "0")
+        TOTAL_CHANGES=$((LINES_ADDED + LINES_DELETED))
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Size Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "- Lines added: $LINES_ADDED" >> $GITHUB_STEP_SUMMARY
+        echo "- Lines deleted: $LINES_DELETED" >> $GITHUB_STEP_SUMMARY
+        echo "- Total changes: $TOTAL_CHANGES" >> $GITHUB_STEP_SUMMARY
+        
+        # Determine PR size
+        if [ "$TOTAL_CHANGES" -lt 50 ]; then
+          PR_SIZE="small"
+          echo "- **PR Size**: 🟢 Small" >> $GITHUB_STEP_SUMMARY
+        elif [ "$TOTAL_CHANGES" -lt 200 ]; then
+          PR_SIZE="medium"
+          echo "- **PR Size**: 🟡 Medium" >> $GITHUB_STEP_SUMMARY
+        else
+          PR_SIZE="large"
+          echo "- **PR Size**: 🔴 Large" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "pr_size=$PR_SIZE" >> $GITHUB_OUTPUT
+        
+        # Determine complexity
+        COMPLEXITY_SCORE=0
+        if [ "$JS_CHANGES" -gt 3 ]; then ((COMPLEXITY_SCORE += 2)); fi
+        if [ "$GAME_CHANGES" -gt 1 ]; then ((COMPLEXITY_SCORE += 3)); fi
+        if [ "$HTML_CHANGES" -gt 1 ]; then ((COMPLEXITY_SCORE += 1)); fi
+        if [ "$ASSET_CHANGES" -gt 0 ]; then ((COMPLEXITY_SCORE += 1)); fi
+        if [ "$CONFIG_CHANGES" -gt 2 ]; then ((COMPLEXITY_SCORE += 2)); fi
+        
+        if [ "$COMPLEXITY_SCORE" -lt 3 ]; then
+          COMPLEXITY="low"
+          echo "- **Complexity**: 🟢 Low" >> $GITHUB_STEP_SUMMARY
+        elif [ "$COMPLEXITY_SCORE" -lt 6 ]; then
+          COMPLEXITY="medium"
+          echo "- **Complexity**: 🟡 Medium" >> $GITHUB_STEP_SUMMARY
+        else
+          COMPLEXITY="high"
+          echo "- **Complexity**: 🔴 High" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "complexity=$COMPLEXITY" >> $GITHUB_OUTPUT
+        
+        # Determine version impact
+        if grep -q "version\.json\|manifest\.json" changed_files.txt; then
+          VERSION_IMPACT="major"
+          echo "- **Version Impact**: 🔴 Major (config changes)" >> $GITHUB_STEP_SUMMARY
+        elif [ "$GAME_CHANGES" -gt 0 ] || [ "$JS_CHANGES" -gt 2 ]; then
+          VERSION_IMPACT="minor"
+          echo "- **Version Impact**: 🟡 Minor (functionality changes)" >> $GITHUB_STEP_SUMMARY
+        else
+          VERSION_IMPACT="patch"
+          echo "- **Version Impact**: 🟢 Patch (minor changes)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "version_impact=$VERSION_IMPACT" >> $GITHUB_OUTPUT
+
+  code-validation:
+    name: 🔍 Code Quality Validation
+    needs: pr-info
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔍 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🔧 Install Validation Tools
+      run: |
+        npm init -y
+        npm install --save-dev \
+          eslint \
+          jshint \
+          htmlhint \
+          stylelint \
+          stylelint-config-standard
+        
+    - name: 🔍 JavaScript Validation
+      run: |
+        echo "## 🔍 Code Quality Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get changed JS files
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        git diff --name-only $BASE_SHA..$HEAD_SHA | grep "\.js$" > js_changes.txt || touch js_changes.txt
+        
+        JS_COUNT=$(wc -l < js_changes.txt)
+        
+        if [ "$JS_COUNT" -gt 0 ]; then
+          echo "### 📄 JavaScript Files ($JS_COUNT changed)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          SYNTAX_ISSUES=0
+          QUALITY_ISSUES=0
+          
+          while read -r js_file; do
+            if [ -f "$js_file" ]; then
+              # Syntax check
+              if node -c "$js_file" 2>/dev/null; then
+                echo "✅ **$js_file** - Syntax OK" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **$js_file** - Syntax Error" >> $GITHUB_STEP_SUMMARY
+                ((SYNTAX_ISSUES++))
+              fi
+              
+              # Basic quality checks
+              LINES=$(wc -l < "$js_file")
+              echo "  - $LINES lines" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for common issues
+              if grep -q "console\.log" "$js_file"; then
+                echo "  - ⚠️ Contains console.log statements" >> $GITHUB_STEP_SUMMARY
+                ((QUALITY_ISSUES++))
+              fi
+              
+              if grep -q "var " "$js_file"; then
+                echo "  - 💡 Consider using 'let' or 'const' instead of 'var'" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+              # Check for game function pattern
+              if grep -q "registerGame" "$js_file"; then
+                echo "  - 🎮 Game script detected" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done < js_changes.txt
+          
+          if [ "$SYNTAX_ISSUES" -gt 0 ]; then
+            echo "❌ **$SYNTAX_ISSUES syntax errors found - PR cannot be merged**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          if [ "$QUALITY_ISSUES" -gt 0 ]; then
+            echo "⚠️ **$QUALITY_ISSUES quality issues found - consider reviewing**" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "### 📄 No JavaScript changes detected" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: 🌐 HTML Validation
+      if: needs.pr-info.outputs.pr_size != 'small'
+      run: |
+        # Get changed HTML files
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        git diff --name-only $BASE_SHA..$HEAD_SHA | grep "\.html$" > html_changes.txt || touch html_changes.txt
+        
+        HTML_COUNT=$(wc -l < html_changes.txt)
+        
+        if [ "$HTML_COUNT" -gt 0 ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 HTML Files ($HTML_COUNT changed)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          while read -r html_file; do
+            if [ -f "$html_file" ]; then
+              echo "📄 **$html_file**" >> $GITHUB_STEP_SUMMARY
+              
+              # Basic HTML checks
+              LINES=$(wc -l < "$html_file")
+              echo "  - $LINES lines" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for DOCTYPE
+              if head -5 "$html_file" | grep -qi "<!DOCTYPE"; then
+                echo "  - ✅ Has DOCTYPE declaration" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  - ⚠️ Missing DOCTYPE declaration" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+              # Check for viewport meta tag
+              if grep -q "viewport" "$html_file"; then
+                echo "  - ✅ Has viewport meta tag" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "  - 💡 Consider adding viewport meta tag for mobile" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done < html_changes.txt
+        fi
+
+  game-testing:
+    name: 🎮 Game Functionality Testing
+    needs: pr-info
+    runs-on: ubuntu-latest
+    if: needs.pr-info.outputs.has_games == 'true'
+    
+    steps:
+    - name: 🔍 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🎮 Analyze Game Changes
+      run: |
+        echo "## 🎮 Game Testing Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get changed game files
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        git diff --name-only $BASE_SHA..$HEAD_SHA | grep "script-.*\.js$" > game_changes.txt || touch game_changes.txt
+        
+        GAME_COUNT=$(wc -l < game_changes.txt)
+        echo "**Games affected**: $GAME_COUNT" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        while read -r game_file; do
+          if [ -f "$game_file" ]; then
+            GAME_NAME=$(echo "$game_file" | sed 's/script-//' | sed 's/.js$//' | sed 's/-/ /g' | sed 's/.*/\L&/; s/[a-z]*/\u&/g')
+            echo "### 🎯 $GAME_NAME" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Basic game script analysis
+            LINES=$(wc -l < "$game_file")
+            echo "- **Lines**: $LINES" >> $GITHUB_STEP_SUMMARY
+            
+            # Check for game function
+            if grep -q "registerGame" "$game_file"; then
+              echo "- ✅ Has registerGame function" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ Missing registerGame function" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Check for canvas usage
+            if grep -q "canvas\|ctx\|getContext" "$game_file"; then
+              echo "- 🎨 Uses HTML5 Canvas" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Check for event handlers
+            if grep -q "addEventListener\|onclick\|keydown\|keyup" "$game_file"; then
+              echo "- ⌨️ Has input handling" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Check for game loop
+            if grep -q "requestAnimationFrame\|setInterval\|setTimeout" "$game_file"; then
+              echo "- 🔄 Has game loop" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Check for cleanup
+            if grep -q "cancelAnimationFrame\|clearInterval\|removeEventListener" "$game_file"; then
+              echo "- 🧹 Has cleanup code" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⚠️ Consider adding cleanup code" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+        done < game_changes.txt
+
+  build-validation:
+    name: 🏗️ Build Validation
+    needs: [pr-info, code-validation]
+    runs-on: ubuntu-latest
+    if: needs.pr-info.outputs.pr_size != 'small'
+    
+    steps:
+    - name: 🔍 Checkout PR
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🏗️ Test Build Process
+      run: |
+        echo "## 🏗️ Build Validation Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Install build tools
+        npm init -y
+        npm install --save-dev terser clean-css-cli html-minifier-terser
+        
+        echo "### 📦 Build Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Test JavaScript minification
+        JS_SUCCESS=0
+        JS_TOTAL=0
+        for js_file in *.js script-*.js; do
+          if [ -f "$js_file" ]; then
+            ((JS_TOTAL++))
+            if npx terser "$js_file" --compress --mangle -o "/tmp/test_${js_file}" 2>/dev/null; then
+              ((JS_SUCCESS++))
+              ORIGINAL_SIZE=$(stat -c%s "$js_file")
+              MINIFIED_SIZE=$(stat -c%s "/tmp/test_${js_file}")
+              REDUCTION=$(( (ORIGINAL_SIZE - MINIFIED_SIZE) * 100 / ORIGINAL_SIZE ))
+              echo "✅ **$js_file**: $(numfmt --to=iec $ORIGINAL_SIZE) → $(numfmt --to=iec $MINIFIED_SIZE) (${REDUCTION}% reduction)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **$js_file**: Minification failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**JavaScript Build**: $JS_SUCCESS/$JS_TOTAL files processed successfully" >> $GITHUB_STEP_SUMMARY
+        
+        # Test HTML minification
+        HTML_SUCCESS=0
+        HTML_TOTAL=0
+        for html_file in *.html; do
+          if [ -f "$html_file" ]; then
+            ((HTML_TOTAL++))
+            if npx html-minifier-terser --collapse-whitespace --remove-comments -o "/tmp/test_${html_file}" "$html_file" 2>/dev/null; then
+              ((HTML_SUCCESS++))
+              ORIGINAL_SIZE=$(stat -c%s "$html_file")
+              MINIFIED_SIZE=$(stat -c%s "/tmp/test_${html_file}")
+              REDUCTION=$(( (ORIGINAL_SIZE - MINIFIED_SIZE) * 100 / ORIGINAL_SIZE ))
+              echo "✅ **$html_file**: $(numfmt --to=iec $ORIGINAL_SIZE) → $(numfmt --to=iec $MINIFIED_SIZE) (${REDUCTION}% reduction)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **$html_file**: Minification failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+        done
+        
+        echo "**HTML Build**: $HTML_SUCCESS/$HTML_TOTAL files processed successfully" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall build status
+        TOTAL_ISSUES=$((JS_TOTAL - JS_SUCCESS + HTML_TOTAL - HTML_SUCCESS))
+        if [ "$TOTAL_ISSUES" -eq 0 ]; then
+          echo "✅ **Overall Build Status**: All files can be built successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Overall Build Status**: $TOTAL_ISSUES files have build issues" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  security-check:
+    name: 🔒 Security Check
+    needs: pr-info
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔍 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔒 Security Analysis
+      run: |
+        echo "## 🔒 Security Analysis Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get all files in PR
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+        git diff --name-only $BASE_SHA..$HEAD_SHA > all_changes.txt
+        
+        # Check for sensitive patterns
+        SECURITY_ISSUES=0
+        
+        echo "### 🔍 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        while read -r file; do
+          if [ -f "$file" ]; then
+            # Check for potential security issues
+            
+            # API keys or secrets
+            if grep -i -E "(api_key|secret|password|token)" "$file" > /dev/null 2>&1; then
+              echo "⚠️ **$file**: Potential secret detected" >> $GITHUB_STEP_SUMMARY
+              ((SECURITY_ISSUES++))
+            fi
+            
+            # Dangerous functions (for JavaScript)
+            if [[ "$file" == *.js ]] && grep -E "(eval|innerHTML|document\.write)" "$file" > /dev/null 2>&1; then
+              echo "⚠️ **$file**: Potentially dangerous JavaScript functions" >> $GITHUB_STEP_SUMMARY
+              ((SECURITY_ISSUES++))
+            fi
+            
+            # External URLs
+            if grep -E "https?://[^localhost]" "$file" > /dev/null 2>&1; then
+              echo "ℹ️ **$file**: Contains external URLs" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+        done < all_changes.txt
+        
+        if [ "$SECURITY_ISSUES" -eq 0 ]; then
+          echo "✅ **No security issues detected**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **$SECURITY_ISSUES potential security issues found**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please review the flagged items above. These may be false positives." >> $GITHUB_STEP_SUMMARY
+        fi
+
+  pr-summary:
+    name: 📊 PR Summary & Recommendations
+    needs: [pr-info, code-validation, game-testing, build-validation, security-check]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 📊 Generate PR Summary
+      run: |
+        echo "## 🎯 PR Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**PR #${{ github.event.pull_request.number }}**: ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Size**: ${{ needs.pr-info.outputs.pr_size }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Complexity**: ${{ needs.pr-info.outputs.complexity }}" >> $GITHUB_STEP_SUMMARY  
+        echo "**Version Impact**: ${{ needs.pr-info.outputs.version_impact }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Job status summary
+        CODE_STATUS="${{ needs.code-validation.result }}"
+        GAME_STATUS="${{ needs.game-testing.result }}"
+        BUILD_STATUS="${{ needs.build-validation.result }}"
+        SECURITY_STATUS="${{ needs.security-check.result }}"
+        
+        echo "### ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Code Validation
+        if [ "$CODE_STATUS" = "success" ]; then
+          echo "✅ **Code Quality**: Passed" >> $GITHUB_STEP_SUMMARY
+        elif [ "$CODE_STATUS" = "failure" ]; then
+          echo "❌ **Code Quality**: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⏭️ **Code Quality**: Skipped" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Game Testing
+        if [ "${{ needs.pr-info.outputs.has_games }}" = "true" ]; then
+          if [ "$GAME_STATUS" = "success" ]; then
+            echo "✅ **Game Testing**: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "$GAME_STATUS" = "failure" ]; then
+            echo "❌ **Game Testing**: Failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **Game Testing**: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚪ **Game Testing**: No games affected" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Build Validation
+        if [ "$BUILD_STATUS" = "success" ]; then
+          echo "✅ **Build Validation**: Passed" >> $GITHUB_STEP_SUMMARY
+        elif [ "$BUILD_STATUS" = "failure" ]; then
+          echo "❌ **Build Validation**: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⏭️ **Build Validation**: Skipped (small PR)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Security Check
+        if [ "$SECURITY_STATUS" = "success" ]; then
+          echo "✅ **Security Check**: Passed" >> $GITHUB_STEP_SUMMARY
+        elif [ "$SECURITY_STATUS" = "failure" ]; then
+          echo "❌ **Security Check**: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⏭️ **Security Check**: Skipped" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Overall recommendation
+        FAILED_JOBS=0
+        [ "$CODE_STATUS" = "failure" ] && ((FAILED_JOBS++))
+        [ "$GAME_STATUS" = "failure" ] && ((FAILED_JOBS++))
+        [ "$BUILD_STATUS" = "failure" ] && ((FAILED_JOBS++))
+        [ "$SECURITY_STATUS" = "failure" ] && ((FAILED_JOBS++))
+        
+        echo "### 🎯 Recommendation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$FAILED_JOBS" -eq 0 ]; then
+          echo "✅ **This PR is ready to merge!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All validations passed successfully. The changes look good and are ready for integration." >> $GITHUB_STEP_SUMMARY
+          
+          # Version suggestion
+          case "${{ needs.pr-info.outputs.version_impact }}" in
+            "major")
+              echo "🏷️ **Suggested version bump**: Major (breaking changes detected)" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "minor")
+              echo "🏷️ **Suggested version bump**: Minor (new functionality)" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "patch")
+              echo "🏷️ **Suggested version bump**: Patch (bug fixes/improvements)" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+          
+        elif [ "$FAILED_JOBS" -eq 1 ]; then
+          echo "⚠️ **This PR needs attention before merge**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "One validation failed. Please review the issues above and fix them." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **This PR is not ready to merge**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Multiple validations failed. Please review and fix the issues before merging." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$FAILED_JOBS" -eq 0 ]; then
+          echo "1. **Review and approve** the PR if the changes look good" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Merge** to trigger automatic versioning and release" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Monitor** the automatic build and release process" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "1. **Fix** the failing validation issues" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Push** updated code to retrigger validation" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Review** results and repeat until all validations pass" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Exit with error if any validation failed
+        if [ "$FAILED_JOBS" -gt 0 ]; then
+          exit 1
+        fi
