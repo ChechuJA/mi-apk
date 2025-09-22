@@ -216,8 +216,8 @@ jobs:
         # Create build directory
         mkdir -p "build/$OPTIMIZATION_LEVEL"
         
-        # Copy source files first
-        cp -r . "build/$OPTIMIZATION_LEVEL/"
+        # Copy source files first (exclude build directory to prevent recursion)
+        find . -maxdepth 1 -not -name "." -not -name "build" -not -name ".git" -not -name ".github" -not -name "node_modules" -not -name "package*.json" | xargs -I {} cp -r {} "build/$OPTIMIZATION_LEVEL/"
         cd "build/$OPTIMIZATION_LEVEL"
         
         # Remove build artifacts and git files
