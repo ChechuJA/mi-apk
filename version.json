@@ -1,9 +1,22 @@
 {
-  "version": "1.0.0",
-  "build": 1,
+  "version": "1.0.1", 
+  "build": 2,
   "date": "2024-09-22",
-  "description": "Initial version with 27 games",
+  "description": "Versión mejorada con sistema de versionado automático corregido - Testing workflow",
   "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2024-09-22", 
+      "changes": [
+        "Sistema de versionado automático corregido",
+        "APK optimizado con mejor compresión (~5.4MB)",
+        "Compatibilidad verificada con Android 15 y Samsung ONE UI 7",
+        "Mejoras en el sistema de releases de GitHub",
+        "Documentación actualizada con nuevas especificaciones"
+      ],
+      "build": 2,
+      "type": "patch"
+    },
     {
       "version": "1.0.0",
       "date": "2024-09-22",
@@ -12,7 +25,9 @@
         "Soporte completo offline con Service Worker",
         "Controles táctiles optimizados",
         "Interfaz responsive para móviles"
-      ]
+      ],
+      "build": 1,
+      "type": "initial"
     }
   ]
 }
