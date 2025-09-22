@@ -2,7 +2,7 @@
   "version": "1.0.1", 
   "build": 2,
   "date": "2024-09-22",
-  "description": "Versión mejorada con sistema de versionado automático corregido",
+  "description": "Versión mejorada con sistema de versionado automático corregido - Testing workflow",
   "changelog": [
     {
       "version": "1.0.1",
