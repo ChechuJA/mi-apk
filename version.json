@@ -1,9 +1,21 @@
 {
-  "version": "1.0.1", 
-  "build": 2,
-  "date": "2024-09-22",
-  "description": "Versión mejorada con sistema de versionado automático corregido - Testing workflow",
+  "version": "1.0.2", 
+  "build": 3,
+  "date": "2025-09-22",
+  "description": "Re-ejecución de workflows de construcción APK solicitada en issue #24",
   "changelog": [
+    {
+      "version": "1.0.2",
+      "date": "2025-09-22", 
+      "changes": [
+        "Re-ejecución de workflows de construcción APK (issue #24)",
+        "Regeneración de APK con estructura Android actualizada",
+        "Validación completa de controles móviles",
+        "Actualización de pipelines de testing automático"
+      ],
+      "build": 3,
+      "type": "patch"
+    },
     {
       "version": "1.0.1",
       "date": "2024-09-22", 
