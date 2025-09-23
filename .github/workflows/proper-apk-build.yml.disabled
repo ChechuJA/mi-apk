@@ -1,26 +1,17 @@
-name: 🏗️ Proper APK Build System
+name: 🏗️ Proper APK Build System (Disabled)
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - '**.json'
-      - 'android-apk/**'
-  pull_request:
-    branches: [ main ]
+  # Temporarily disabled due to YAML syntax issues with here-documents  
   workflow_dispatch:
     inputs:
-      build_type:
-        description: 'Build type'
+      force_run:
+        description: 'Force run disabled workflow'
         required: true
-        default: 'release'
+        default: 'no'
         type: choice
         options:
-        - debug
-        - release
+        - 'no'
+        - 'yes'
 
 jobs:
   build-proper-apk:

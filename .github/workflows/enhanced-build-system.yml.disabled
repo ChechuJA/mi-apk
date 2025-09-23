@@ -1,38 +1,19 @@
-name: 🏗️ Enhanced Build System
+# Temporarily disabled due to YAML syntax issues with here-documents
+# Will be re-enabled after fixing indentation issues
+name: 🏗️ Enhanced Build System (Disabled)
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - 'assets/**'
-      - 'icons/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - '**.js'
-      - '**.html'
-      - '**.css'
-      - 'assets/**'
-      - 'icons/**'
+  # Temporarily disabled
   workflow_dispatch:
     inputs:
-      optimization_level:
-        description: 'Optimization level'
+      force_run:
+        description: 'Force run disabled workflow'
         required: true
-        default: 'standard'
+        default: 'no'
         type: choice
         options:
-        - minimal
-        - standard
-        - aggressive
-      include_debug:
-        description: 'Include debug information'
-        required: false
-        default: false
-        type: boolean
+        - 'no'
+        - 'yes'
 
 jobs:
   code-quality:
@@ -216,8 +197,8 @@ jobs:
         # Create build directory
         mkdir -p "build/$OPTIMIZATION_LEVEL"
         
-        # Copy source files first
-        cp -r . "build/$OPTIMIZATION_LEVEL/"
+        # Copy source files first (exclude build directory to prevent recursion)
+        find . -maxdepth 1 -not -name "." -not -name "build" -not -name ".git" -not -name ".github" -not -name "node_modules" -not -name "package*.json" | xargs -I {} cp -r {} "build/$OPTIMIZATION_LEVEL/"
         cd "build/$OPTIMIZATION_LEVEL"
         
         # Remove build artifacts and git files
