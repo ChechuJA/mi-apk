@@ -114,6 +114,43 @@ jobs:
         echo "- ✅ Estructura Android válida" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Listo para instalación" >> $GITHUB_STEP_SUMMARY
         
+    - name: 🔑 Sign APK
+      run: |
+        APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-signed.apk"
+
+        # Copy the unsigned APK
+        cp "$APK_FILE" "$SIGNED_APK"
+
+        # Sign the APK
+        jarsigner -verbose \
+          -sigalg SHA256withRSA \
+          -digestalg SHA-256 \
+          -keystore bruno-vega.keystore \
+          -storepass "brunovega123" \
+          -keypass "brunovega123" \
+          "$SIGNED_APK" \
+          bruno-vega-key
+
+        echo "✅ APK signed successfully"
+
+        # Verify the signature
+        jarsigner -verify -verbose "$SIGNED_APK"
+
+        if [ $? -eq 0 ]; then
+          echo "✅ APK signature verified"
+        else
+          echo "❌ APK signature verification failed"
+          exit 1
+        fi
+
+    - name: 📤 Upload Signed APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: bruno-vega-signed-apk
+        path: android-apk/releases/latest/Bruno y Vega-signed.apk
+        retention-days: 30
+
     - name: 🚀 Commit Nueva APK
       run: |
         git config --local user.email "action@github.com"
