@@ -11,8 +11,10 @@ android {
         applicationId "com.brunnovega.games"
         minSdk 21
         targetSdk 34
-        versionCode 6
-        versionName "1.0.6"
+        def envVersionName = System.getenv("APP_VERSION_NAME") ?: "1.0.7"
+        def envVersionCode = (System.getenv("APP_VERSION_CODE") ?: "7").toInteger()
+        versionCode envVersionCode
+        versionName envVersionName
     }
 
     buildTypes {

@@ -1,4 +1,23 @@
 #!/usr/bin/env sh
 set -e
-DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$DIR/gradle" "$@"
+PRG="$0"
+DIR=$(dirname "$PRG")
+WRAPPER_JAR="$DIR/gradle/wrapper/gradle-wrapper.jar"
+PROPS_FILE="$DIR/gradle/wrapper/gradle-wrapper.properties"
+
+if [ ! -f "$WRAPPER_JAR" ]; then
+	echo "Gradle wrapper jar missing. Bootstrapping..."
+	DIST_URL=$(grep distributionUrl "$PROPS_FILE" | cut -d'=' -f2)
+	DIST_FILE="${DIST_URL##*/}"
+	mkdir -p "$DIR/gradle/wrapper/tmp-download"
+	cd "$DIR/gradle/wrapper/tmp-download"
+	curl -sSL "$DIST_URL" -o "$DIST_FILE"
+	unzip -q "$DIST_FILE" || true
+	# We only need the wrapper JAR from a standard project; if absent we continue relying on gradle-build-action
+	cd "$DIR"
+fi
+
+exec java -jar "$WRAPPER_JAR" "$@" 2>/dev/null || {
+	echo "Falling back to 'gradle' on PATH" >&2
+	exec gradle "$@"
+}

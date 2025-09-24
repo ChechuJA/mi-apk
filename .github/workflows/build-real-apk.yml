@@ -2,6 +2,11 @@ name: 📱 Build Real APK v1.0.7
 
 on:
   workflow_dispatch:
+    inputs:
+      app_version:
+        description: "Versión semántica (ej: 1.0.7)"
+        required: false
+        default: "1.0.7"
   push:
     branches: [ main ]
 
@@ -38,7 +43,8 @@ jobs:
 
       - name: 📦 Copy Web Assets into Android Wrapper
         run: |
-          VERSION=1.0.7
+          VERSION="${{ github.event.inputs.app_version || '1.0.7' }}"
+          VERSION_CODE=$(echo $VERSION | awk -F. '{ printf("%d%02d%02d", $1,$2,$3) }')
           WRAPPER=android-wrapper/app/src/main/assets
           mkdir -p "$WRAPPER"
           shopt -s nullglob
@@ -49,7 +55,11 @@ jobs:
             mkdir -p "$WRAPPER/assets"
             cp -r assets/* "$WRAPPER/assets/"
           fi
+          # Export to env for later steps / Gradle
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION_NAME=$VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          chmod +x android-wrapper/gradlew || true
 
       - name: 🔐 Generate Keystore (dev) (if no secret)
         id: keystore
@@ -88,6 +98,9 @@ jobs:
           gradle-version: 8.9
           build-root-directory: android-wrapper
           arguments: assembleRelease --no-daemon -x test
+        env:
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
 
       - name: 🔎 List APK Outputs
         run: |
@@ -95,7 +108,7 @@ jobs:
 
       - name: ✍️ Sign & Align APK
         run: |
-          VERSION=${VERSION:-1.0.7}
+          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
           UNSIGNED=android-wrapper/app/build/outputs/apk/release/app-release-unsigned.apk
           ALIGNED=app-release-aligned.apk
           SIGNED=Bruno_y_Vega_v${VERSION}_signed.apk
@@ -136,13 +149,13 @@ jobs:
       - name: 📤 Upload Signed APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bruno-vega-v1.0.7-signed-real
+          name: bruno-vega-v${{ env.VERSION }}-signed-real
           path: android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk
           retention-days: 30
 
       - name: 📝 Summary
         run: |
-          VERSION=${VERSION:-1.0.7}
+          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
           echo "## ✅ APK real generada v$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- Keystore alias: $KEY_ALIAS" >> $GITHUB_STEP_SUMMARY
           echo "- Archivo principal: Bruno_y_Vega_latest_signed.apk" >> $GITHUB_STEP_SUMMARY
@@ -151,7 +164,7 @@ jobs:
 
       - name: 🚀 Commit APK (opcional)
         run: |
-          VERSION=${VERSION:-1.0.7}
+          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk android-apk/releases/v$VERSION/ || true
