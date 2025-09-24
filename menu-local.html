@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Juegos Locales</title>
+  <!-- Base necesaria para que los recursos relativos funcionen cuando se inyecta el HTML vía loadDataWithBaseURL -->
+  <base href="file:///android_asset/" />
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin:0; background:#0d1117; color:#e6edf3; }
     header { background:#1f6feb; padding:16px; text-align:center; }
@@ -52,52 +54,45 @@
   function buildMenu(){
     const grid=document.getElementById('grid');
     games.forEach(g=>{
-      if(!doesScriptExist(g.file)) return; // omit if missing
       const c=document.createElement('div');
       c.className='card';
       c.innerHTML='<h2>'+g.id+'</h2><small>'+g.desc+'</small>';
       c.onclick=()=>launchGame(g);
       grid.appendChild(c);
     });
+    // Señal visual de que el menú se renderizó
+    const dbg=document.getElementById('debugBanner');
+    if(dbg) dbg.textContent+=' | menu listo';
   }
-  function doesScriptExist(name){ return !!document.querySelector('meta[data-'+name+']'); }
   function launchGame(g){
     const wrapper=document.getElementById('gameFrameWrapper');
     wrapper.style.display='flex';
     // We inject a blank html with dynamic script tag so no remote iframes
     const iframe=document.getElementById('gameFrame');
-    const html = `<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>${g.id}</title></head><body style="margin:0;background:#000;color:#fff;font-family:Arial">
+    const html = `<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><base href="file:///android_asset/"><title>${g.id}</title></head><body style="margin:0;background:#000;color:#fff;font-family:Arial">
+      <div style="position:absolute;top:4px;left:6px;font:10px monospace;background:#1f6feb;padding:2px 4px;border-radius:4px;opacity:.7;z-index:99">Cargando ${g.file}</div>
       <canvas id='gameCanvas'></canvas>
-      <script src='${g.file}'></script>
-      <script>window.initMobileControls && window.initMobileControls('directional');</script>
+      <script src='${g.file}' onerror="document.body.insertAdjacentHTML('beforeend','<div style=\\"position:absolute;top:24px;left:6px;background:#900;padding:4px;font:12px monospace\\">No se pudo cargar ${g.file}</div>')"></script>
+      <script>console.log('[iframe] Juego ${g.id} inicializando'); window.initMobileControls && window.initMobileControls('directional');</script>
     </body></html>`;
     iframe.src = 'data:text/html;base64,'+btoa(unescape(encodeURIComponent(html)));
+    const dbg=document.getElementById('debugBanner');
+    if(dbg) dbg.textContent='Abriendo '+g.file;
   }
   function closeGame(){
     document.getElementById('gameFrameWrapper').style.display='none';
     document.getElementById('gameFrame').src='about:blank';
+    const dbg=document.getElementById('debugBanner');
+    if(dbg) dbg.textContent='Menú';
   }
   document.addEventListener('DOMContentLoaded', buildMenu);
   </script>
-  <!-- Marcadores para chequear existencia de scripts (evita abrir juegos que no estén) -->
-  <meta data-script-4enraya.js />
-  <meta data-script-ahorcado.js />
-  <meta data-script-arkanoid.js />
-  <meta data-script-bubble.js />
-  <meta data-script-laberinto.js />
-  <meta data-script-memoria.js />
-  <meta data-script-serpiente.js />
-  <meta data-script-sokoban.js />
-  <meta data-script-quiz.js />
-  <meta data-script-flappy.js />
-  <meta data-script-paracaidista.js />
-  <meta data-script-recoge-moras.js />
-  <meta data-script-moto-desierto.js />
-  <meta data-script-nave-exploradora.js />
+  <!-- Marcadores eliminados: los atributos data-* con punto no eran válidos y el filtrado impedía que aparecieran juegos -->
   <script src="mobile-controls.js"></script>
 </head>
 <body>
   <header><h1>Juegos Locales</h1></header>
+  <div id="debugBanner" style="position:fixed;bottom:0;left:0;background:#1f6feb;color:#fff;font:10px monospace;padding:2px 4px;z-index:1000;border-top-right-radius:6px;opacity:.6">menu-local cargado</div>
   <div id="grid" class="grid"></div>
   <div id="gameFrameWrapper">
     <div id="gameHeader">
