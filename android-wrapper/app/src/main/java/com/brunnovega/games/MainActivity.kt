@@ -93,6 +93,30 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 progressBar?.visibility = View.GONE
+                // Inyección del overlay de consola DESPUÉS de cargar la página para que persista
+                val jsOverlay = ("""
+                        (function(){
+                            try{
+                              if(window.__BVConsoleInjected) return; window.__BVConsoleInjected=true;
+                              var box=document.createElement('div');
+                              box.style.cssText='position:fixed;left:0;right:0;bottom:0;max-height:45%;overflow:auto;font:11px monospace;background:rgba(0,0,0,.82);color:#0f0;z-index:2147483647;padding:4px;border-top:1px solid #1f6feb';
+                              box.id='__bv_console';
+                              var tag=document.createElement('div');tag.textContent='[debug overlay activo]';tag.style="color:#1f6feb;margin-bottom:4px;font-weight:bold";box.appendChild(tag);
+                              document.body.appendChild(box);
+                              function log(type,args){
+                                var line=document.createElement('div');
+                                line.style.whiteSpace='pre-wrap';
+                                line.textContent='['+type+'] '+Array.from(args).join(' ');
+                                box.appendChild(line); box.scrollTop=box.scrollHeight;
+                              }
+                              ['log','warn','error'].forEach(function(k){ var o=console[k]; console[k]=function(){ log(k,arguments); return o.apply(console,arguments);} });
+                              window.addEventListener('error',function(e){ log('window.error',[e.message+' @'+e.filename+':'+e.lineno]); });
+                              window.addEventListener('unhandledrejection',function(e){ log('promise',[e.reason]); });
+                              log('info',['Overlay inyectado']);
+                            }catch(ex){ console&&console.log('Fallo overlay',ex); }
+                        })();
+                """.trim()).replace("\n"," ")
+                view?.evaluateJavascript(jsOverlay, null)
             }
             override fun onReceivedError(
                 view: WebView?,
@@ -126,32 +150,35 @@ class MainActivity : AppCompatActivity() {
         } ?: "index.html"
 
         try {
-                        val url = "file:///android_asset/$startFile"
-                        Log.i(TAG, "Cargando $url")
-                        // Inyección de capa de errores/console visual para cualquier página
-                        val jsOverlay = ("""
-                                (function(){
-                                    if(window.__BVConsoleInjected) return; window.__BVConsoleInjected=true;
-                                    const box=document.createElement('div');
-                                    box.style.cssText='position:fixed;left:0;right:0;bottom:0;max-height:40%;overflow:auto;font:12px monospace;background:rgba(0,0,0,.8);color:#0f0;z-index:99999;padding:4px;';
-                                    box.id='__bv_console';
-                                    document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(box));
-                                    function log(type,args){
-                                        const line=document.createElement('div');
-                                        line.style.whiteSpace='pre-wrap';
-                                        line.textContent='['+type+'] '+Array.from(args).join(' ');
-                                        box.appendChild(line); box.scrollTop=box.scrollHeight;
-                                    }
-                                    ['log','warn','error'].forEach(k=>{ const o=console[k]; console[k]=function(){ log(k,arguments); o.apply(console,arguments);} });
-                                    window.addEventListener('error',e=>log('window.error',[e.message]));
-                                    window.addEventListener('unhandledrejection',e=>log('promise',[e.reason]));
-                                })();
-                        """.trim()).replace("\n"," ")
-                        webView.evaluateJavascript("$jsOverlay", null)
-                        webView.loadUrl(url)
+            Log.i(TAG, "Intentando leer asset $startFile")
+            val html = assets.open(startFile).bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val annotatedHtml = StringBuilder()
+                .append("<!-- asset:"+startFile+" leído OK -->\n")
+                .append(if (html.contains("<base")) html else html.replaceFirst("<head>", "<head><base href=\"file:///android_asset/\">") )
+                .append("\n<!-- fin asset original -->")
+                .toString()
+            // Añadir marca para confirmar inyección (la consola overlay real se añade en onPageFinished)
+            val instrumented = annotatedHtml.replace("</body>", "<div id='__preInject' style='position:fixed;top:0;left:0;background:#1f6feb;color:#fff;font:10px monospace;padding:2px 4px;z-index:99999'>cargando ${startFile}</div></body>")
+            Log.i(TAG, "Cargando asset inline via loadDataWithBaseURL (bytes=${html.length})")
+            webView.loadDataWithBaseURL(
+                "file:///android_asset/",
+                instrumented,
+                "text/html",
+                "utf-8",
+                null
+            )
         } catch (e: Exception) {
-            Log.e(TAG, "Error cargando $startFile", e)
-            webView.loadDataWithBaseURL(null, ERROR_HTML, "text/html", "utf-8", null)
+            Log.e(TAG, "Error leyendo/cargando $startFile", e)
+            val fallback = """
+                <html><head><meta charset='utf-8'><title>Fallback</title><base href='file:///android_asset/'></head>
+                <body style='background:#111;color:#eee;font-family:Arial'>
+                <h2>No se pudo abrir $startFile</h2>
+                <p>${e::class.java.simpleName}: ${e.message}</p>
+                <p>Ver logcat TAG=$TAG para detalles.</p>
+                <script>console.error('Fallo cargando $startFile');</script>
+                </body></html>
+            """.trimIndent()
+            webView.loadDataWithBaseURL("file:///android_asset/", fallback, "text/html", "utf-8", null)
         }
     }
 
