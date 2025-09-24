@@ -1,12 +1,7 @@
-name: 📱 Build Real APK v1.0.7
+name: 📱 Build Real APK (auto-version)
 
 on:
   workflow_dispatch:
-    inputs:
-      app_version:
-        description: "Versión semántica (ej: 1.0.7)"
-        required: false
-        default: "1.0.7"
   push:
     branches: [ main ]
 
@@ -37,22 +32,42 @@ jobs:
         shell: bash
         run: |
           set -e
-          echo "Accepting licenses" || true
+          ANDROID_SDK_ROOT="$HOME/android-sdk"
+          ANDROID_HOME="$ANDROID_SDK_ROOT"
+          export ANDROID_SDK_ROOT ANDROID_HOME
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          echo "⬇️ Descargando commandline-tools"
+          curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "Aceptando licencias"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          echo "Installing platform 34 + build-tools 34.0.0"
+          echo "📦 Instalando platform-tools + API 34"
           if sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"; then
-            echo "✅ Installed API 34"
+            echo "✅ API 34 instalada"
+            echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> $GITHUB_PATH
           else
-            echo "⚠️ API 34 not available, falling back to 33"
+            echo "⚠️ No se pudo instalar API 34. Fallback a API 33"
             sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
             sed -i 's/compileSdk 34/compileSdk 33/' android-wrapper/app/build.gradle || true
             sed -i 's/targetSdk 34/targetSdk 33/' android-wrapper/app/build.gradle || true
+            echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH
           fi
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+          echo "✅ SDK listo"
 
       - name: 📦 Copy Web Assets into Android Wrapper
         run: |
-          VERSION="${{ github.event.inputs.app_version || '1.0.7' }}"
-          VERSION_CODE=$(echo $VERSION | awk -F. '{ printf("%d%02d%02d", $1,$2,$3) }')
+          DATE=$(date +%Y%m%d)
+            TIME=$(date +%H%M%S)
+            SHORT_SHA=${GITHUB_SHA::7}
+            # versionName legible y versionCode numérico (yy + dayOfYear + HHMM)
+            APP_VERSION_NAME="$DATE-$TIME-$SHORT_SHA"
+            APP_VERSION_CODE=$(date +%y%j%H%M)
+            echo "Auto version -> name=$APP_VERSION_NAME code=$APP_VERSION_CODE"
           WRAPPER=android-wrapper/app/src/main/assets
           mkdir -p "$WRAPPER"
           shopt -s nullglob
@@ -64,9 +79,8 @@ jobs:
             cp -r assets/* "$WRAPPER/assets/"
           fi
           # Export to env for later steps / Gradle
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "APP_VERSION_NAME=$VERSION" >> $GITHUB_ENV
-          echo "APP_VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "APP_VERSION_NAME=$APP_VERSION_NAME" >> $GITHUB_ENV
+          echo "APP_VERSION_CODE=$APP_VERSION_CODE" >> $GITHUB_ENV
           chmod +x android-wrapper/gradlew || true
 
       - name: 🔐 Generate Keystore (dev) (if no secret)
@@ -116,65 +130,77 @@ jobs:
 
       - name: ✍️ Sign & Align APK
         run: |
-          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
           UNSIGNED=android-wrapper/app/build/outputs/apk/release/app-release-unsigned.apk
           ALIGNED=app-release-aligned.apk
-          SIGNED=Bruno_y_Vega_v${VERSION}_signed.apk
+          SIGNED=Bruno_y_Vega_signed.apk
 
           if [ ! -f "$UNSIGNED" ]; then echo "❌ APK unsigned no encontrado"; exit 1; fi
-
-          echo "🔧 Installing build-tools (zipalign/apksigner)"
-          sudo apt-get update -y
-          sudo apt-get install -y zipalign apksigner || true
-
-          if command -v zipalign >/dev/null 2>&1; then
-            zipalign -p 4 "$UNSIGNED" "$ALIGNED"
+          # zipalign y apksigner deberían estar en build-tools instalados anteriormente
+          if ! command -v zipalign >/dev/null 2>&1; then
+            echo "⚠️ zipalign no encontrado en PATH, intentando localizarlo"
+            ZIPALIGN_PATH=$(find "$ANDROID_SDK_ROOT" -type f -name zipalign | head -n1 || true)
+            if [ -n "$ZIPALIGN_PATH" ]; then
+              echo "Usando $ZIPALIGN_PATH"; chmod +x "$ZIPALIGN_PATH"; "$ZIPALIGN_PATH" -p 4 "$UNSIGNED" "$ALIGNED"
+            else
+              echo "⚠️ No se encontró zipalign, copiando directo"; cp "$UNSIGNED" "$ALIGNED"
+            fi
           else
-            echo "⚠️ zipalign no disponible, copiando directo"; cp "$UNSIGNED" "$ALIGNED"
+            zipalign -p 4 "$UNSIGNED" "$ALIGNED"
           fi
 
-          if command -v apksigner >/dev/null 2>&1; then
+          if ! command -v apksigner >/dev/null 2>&1; then
+            echo "⚠️ apksigner no encontrado en PATH, buscando..."
+            APKSIGNER_PATH=$(find "$ANDROID_SDK_ROOT" -type f -name apksigner | head -n1 || true)
+            if [ -n "$APKSIGNER_PATH" ]; then
+              echo "Usando $APKSIGNER_PATH"; chmod +x "$APKSIGNER_PATH"
+              "$APKSIGNER_PATH" sign \
+                --ks release.keystore \
+                --ks-pass pass:$STORE_PASS \
+                --key-pass pass:$KEY_PASS \
+                --out "$SIGNED" \
+                "$ALIGNED"
+              "$APKSIGNER_PATH" verify --verbose "$SIGNED" || true
+            else
+              echo "⚠️ No apksigner -> fallback jarsigner"
+              jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+                -keystore release.keystore \
+                -storepass $STORE_PASS -keypass $KEY_PASS \
+                "$ALIGNED" $KEY_ALIAS
+              cp "$ALIGNED" "$SIGNED"
+            fi
+          else
             apksigner sign \
               --ks release.keystore \
               --ks-pass pass:$STORE_PASS \
               --key-pass pass:$KEY_PASS \
               --out "$SIGNED" \
               "$ALIGNED"
-            apksigner verify --verbose "$SIGNED"
-          else
-            echo "⚠️ apksigner no disponible, fallback jarsigner"
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore release.keystore \
-              -storepass $STORE_PASS -keypass $KEY_PASS \
-              "$ALIGNED" $KEY_ALIAS
-            cp "$ALIGNED" "$SIGNED"
+            apksigner verify --verbose "$SIGNED" || true
           fi
 
-          mkdir -p android-apk/releases/latest android-apk/releases/v$VERSION
+          mkdir -p android-apk/releases/latest
           cp "$SIGNED" android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk
-          cp "$SIGNED" android-apk/releases/v$VERSION/Bruno_y_Vega_v${VERSION}_signed.apk
 
       - name: 📤 Upload Signed APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bruno-vega-v${{ env.VERSION }}-signed-real
+          name: bruno-vega-latest-signed-real
           path: android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk
           retention-days: 30
 
       - name: 📝 Summary
         run: |
-          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
-          echo "## ✅ APK real generada v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ APK real generada" >> $GITHUB_STEP_SUMMARY
+          echo "- versionName: $APP_VERSION_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "- versionCode: $APP_VERSION_CODE" >> $GITHUB_STEP_SUMMARY
           echo "- Keystore alias: $KEY_ALIAS" >> $GITHUB_STEP_SUMMARY
-          echo "- Archivo principal: Bruno_y_Vega_latest_signed.apk" >> $GITHUB_STEP_SUMMARY
-          echo "- Archivo versionado: Bruno_y_Vega_v${VERSION}_signed.apk" >> $GITHUB_STEP_SUMMARY
+          echo "- Archivo: Bruno_y_Vega_latest_signed.apk" >> $GITHUB_STEP_SUMMARY
           echo "- Instalación: Habilita orígenes desconocidos y abre la APK" >> $GITHUB_STEP_SUMMARY
 
       - name: 🚀 Commit APK (opcional)
         run: |
-          VERSION=${VERSION:-${{ github.event.inputs.app_version || '1.0.7' }}}
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
-          git add android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk android-apk/releases/v$VERSION/ || true
-          git commit -m "📱 APK real firmada v$VERSION" || exit 0
+          git add android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk || true
+          git commit -m "📱 APK real firmada auto-version $APP_VERSION_NAME" || exit 0
           git push || true
