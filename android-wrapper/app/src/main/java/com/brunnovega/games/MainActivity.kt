@@ -32,23 +32,38 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val root = FrameLayout(this)
-        webView = WebView(this)
-        progressBar = ProgressBar(this).apply {
-            isIndeterminate = true
-            visibility = View.VISIBLE
+        // Handler global para capturar cualquier excepción no controlada
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            runOnUiThread { showFatalError(e) }
         }
-        root.addView(webView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        val pbParams = FrameLayout.LayoutParams(120,120)
-        pbParams.topMargin = 200
-        pbParams.leftMargin = 0
-        pbParams.gravity = android.view.Gravity.CENTER
-        root.addView(progressBar, pbParams)
-        setContentView(root)
 
-        WebView.setWebContentsDebuggingEnabled(true)
+        try {
+            val root = FrameLayout(this)
+            webView = WebView(this)
+            progressBar = ProgressBar(this).apply {
+                isIndeterminate = true
+                visibility = View.VISIBLE
+            }
+            root.addView(webView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+            val pbParams = FrameLayout.LayoutParams(120,120)
+            pbParams.topMargin = 200
+            pbParams.leftMargin = 0
+            pbParams.gravity = android.view.Gravity.CENTER
+            root.addView(progressBar, pbParams)
+            setContentView(root)
 
-        val settings: WebSettings = webView.settings.apply {
+            WebView.setWebContentsDebuggingEnabled(true)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Fallo inicializando WebView", e)
+            showFatalError(e)
+            return
+        }
+
+        val settings: WebSettings = try { webView.settings } catch (e: Throwable) {
+            Log.e(TAG, "No se pudo obtener settings del WebView", e)
+            showFatalError(e)
+            return
+        }.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             allowFileAccess = true
@@ -138,6 +153,20 @@ class MainActivity : AppCompatActivity() {
             Log.e(TAG, "Error cargando $startFile", e)
             webView.loadDataWithBaseURL(null, ERROR_HTML, "text/html", "utf-8", null)
         }
+    }
+
+    private fun showFatalError(e: Throwable) {
+        try {
+            val root = FrameLayout(this)
+            val tv = android.widget.TextView(this)
+            tv.text = "⚠️ Error fatal:\n" + e::class.java.name + "\n" + (e.message ?: "(sin mensaje)") + "\n\n" + e.stackTrace.take(25).joinToString("\n")
+            tv.setTextIsSelectable(true)
+            tv.setPadding(32,64,32,64)
+            tv.setBackgroundColor(0xFF111111.toInt())
+            tv.setTextColor(0xFFFF6666.toInt())
+            root.addView(tv)
+            setContentView(root)
+        } catch (_: Throwable) { /* ignore */ }
     }
 
     override fun onBackPressed() {
