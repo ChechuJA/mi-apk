@@ -146,46 +146,40 @@ jobs:
 
           if [ ! -f "$UNSIGNED" ]; then echo "❌ APK unsigned no encontrado"; exit 1; fi
           # zipalign y apksigner deberían estar en build-tools instalados anteriormente
-          if ! command -v zipalign >/dev/null 2>&1; then
-            echo "⚠️ zipalign no encontrado en PATH, intentando localizarlo"
-            ZIPALIGN_PATH=$(find "$ANDROID_SDK_ROOT" -type f -name zipalign | head -n1 || true)
-            if [ -n "$ZIPALIGN_PATH" ]; then
-              echo "Usando $ZIPALIGN_PATH"; chmod +x "$ZIPALIGN_PATH"; "$ZIPALIGN_PATH" -p 4 "$UNSIGNED" "$ALIGNED"
-            else
-              echo "⚠️ No se encontró zipalign, copiando directo"; cp "$UNSIGNED" "$ALIGNED"
-            fi
+          # Localizar zipalign evitando modificar permisos del SDK del runner
+          ZIPALIGN_BIN="$(command -v zipalign || true)"
+          if [ -z "$ZIPALIGN_BIN" ]; then
+            echo "⚠️ zipalign no en PATH, buscando en build-tools"
+            ZIPALIGN_BIN=$(ls -1 "$ANDROID_HOME"/build-tools/*/zipalign 2>/dev/null | head -n1 || true)
+          fi
+          if [ -n "$ZIPALIGN_BIN" ]; then
+            echo "Usando zipalign: $ZIPALIGN_BIN"
+            "$ZIPALIGN_BIN" -p 4 "$UNSIGNED" "$ALIGNED"
           else
-            zipalign -p 4 "$UNSIGNED" "$ALIGNED"
+            echo "⚠️ zipalign no encontrado, copiando sin alinear"; cp "$UNSIGNED" "$ALIGNED"
           fi
 
-          if ! command -v apksigner >/dev/null 2>&1; then
-            echo "⚠️ apksigner no encontrado en PATH, buscando..."
-            APKSIGNER_PATH=$(find "$ANDROID_SDK_ROOT" -type f -name apksigner | head -n1 || true)
-            if [ -n "$APKSIGNER_PATH" ]; then
-              echo "Usando $APKSIGNER_PATH"; chmod +x "$APKSIGNER_PATH"
-              "$APKSIGNER_PATH" sign \
-                --ks release.keystore \
-                --ks-pass pass:$STORE_PASS \
-                --key-pass pass:$KEY_PASS \
-                --out "$SIGNED" \
-                "$ALIGNED"
-              "$APKSIGNER_PATH" verify --verbose "$SIGNED" || true
-            else
-              echo "⚠️ No apksigner -> fallback jarsigner"
-              jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-                -keystore release.keystore \
-                -storepass $STORE_PASS -keypass $KEY_PASS \
-                "$ALIGNED" $KEY_ALIAS
-              cp "$ALIGNED" "$SIGNED"
-            fi
-          else
-            apksigner sign \
+          APKSIGNER_BIN="$(command -v apksigner || true)"
+          if [ -z "$APKSIGNER_BIN" ]; then
+            echo "⚠️ apksigner no en PATH, buscando en build-tools"
+            APKSIGNER_BIN=$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | head -n1 || true)
+          fi
+          if [ -n "$APKSIGNER_BIN" ]; then
+            echo "Usando apksigner: $APKSIGNER_BIN"
+            "$APKSIGNER_BIN" sign \
               --ks release.keystore \
               --ks-pass pass:$STORE_PASS \
               --key-pass pass:$KEY_PASS \
               --out "$SIGNED" \
               "$ALIGNED"
-            apksigner verify --verbose "$SIGNED" || true
+            "$APKSIGNER_BIN" verify --verbose "$SIGNED" || true
+          else
+            echo "⚠️ No apksigner disponible -> fallback jarsigner"
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore release.keystore \
+              -storepass $STORE_PASS -keypass $KEY_PASS \
+              "$ALIGNED" $KEY_ALIAS
+            cp "$ALIGNED" "$SIGNED"
           fi
 
           mkdir -p android-apk/releases/latest
