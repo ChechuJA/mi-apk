@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es" data-environment="apk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Juegos Locales</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin:0; background:#0d1117; color:#e6edf3; }
+    header { background:#1f6feb; padding:16px; text-align:center; }
+    h1 { margin:0; font-size:20px; }
+    .grid { display:grid; gap:12px; padding:16px; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
+    .card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:10px; cursor:pointer; position:relative; transition:.15s; }
+    .card:hover { border-color:#1f6feb; box-shadow:0 0 0 2px #1f6feb44; }
+    .card h2 { font-size:14px; margin:0 0 4px; line-height:1.2; }
+    .card small { opacity:.7; font-size:11px; }
+    #gameFrameWrapper { position:fixed; inset:0; background:#000; display:none; flex-direction:column; }
+    #gameHeader { background:#1f6feb; padding:8px 12px; display:flex; align-items:center; gap:8px; }
+    #gameHeader button { background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px 10px; cursor:pointer; }
+    #gameHeader button:hover { background:#161b22; }
+    iframe { flex:1; width:100%; border:0; background:#000; }
+    #errorOverlay { position:fixed; inset:0; background:#000c; display:none; align-items:center; justify-content:center; }
+    #errorOverlay .box { background:#161b22; border:1px solid #ff5555; padding:20px; max-width:360px; border-radius:10px; box-shadow:0 4px 20px #000; }
+    #errorOverlay h3 { margin-top:0; color:#ff8888; }
+    #errorDetails { white-space:pre-wrap; font-size:11px; background:#0d1117; padding:8px; border-radius:6px; max-height:200px; overflow:auto; }
+  </style>
+  <script>
+  // Captura de errores globales para mostrarlos en overlay
+  window.addEventListener('error', e => showError('Error JS', e.message + '\n' + (e.filename||'') + ':' + e.lineno));
+  window.addEventListener('unhandledrejection', e => showError('Promise rechazada', String(e.reason)));
+  function showError(title, details){
+    const overlay = document.getElementById('errorOverlay');
+    overlay.style.display='flex';
+    overlay.querySelector('h3').textContent=title;
+    document.getElementById('errorDetails').textContent=details;
+  }
+  const games = [
+    { id:'4enraya', file:'script-4enraya.js', desc:'Conecta 4' },
+    { id:'ahorcado', file:'script-ahorcado.js', desc:'Ahorcado' },
+    { id:'arkanoid', file:'script-arkanoid.js', desc:'Arkanoid' },
+    { id:'bubble', file:'script-bubble.js', desc:'Bubble' },
+    { id:'laberinto', file:'script-laberinto.js', desc:'Laberinto' },
+    { id:'memoria', file:'script-memoria.js', desc:'Memoria' },
+    { id:'serpiente', file:'script-serpiente.js', desc:'Serpiente' },
+    { id:'sokoban', file:'script-sokoban.js', desc:'Sokoban' },
+    { id:'quiz', file:'script-quiz.js', desc:'Quiz' },
+    { id:'flappy', file:'script-flappy.js', desc:'Flappy' },
+    { id:'paracaidista', file:'script-paracaidista.js', desc:'Paracaidista' },
+    { id:'recoge-moras', file:'script-recoge-moras.js', desc:'Recoge moras' },
+    { id:'moto-desierto', file:'script-moto-desierto.js', desc:'Moto desierto' },
+    { id:'nave-exploradora', file:'script-nave-exploradora.js', desc:'Nave exploradora' }
+  ];
+  function buildMenu(){
+    const grid=document.getElementById('grid');
+    games.forEach(g=>{
+      if(!doesScriptExist(g.file)) return; // omit if missing
+      const c=document.createElement('div');
+      c.className='card';
+      c.innerHTML='<h2>'+g.id+'</h2><small>'+g.desc+'</small>';
+      c.onclick=()=>launchGame(g);
+      grid.appendChild(c);
+    });
+  }
+  function doesScriptExist(name){ return !!document.querySelector('meta[data-'+name+']'); }
+  function launchGame(g){
+    const wrapper=document.getElementById('gameFrameWrapper');
+    wrapper.style.display='flex';
+    // We inject a blank html with dynamic script tag so no remote iframes
+    const iframe=document.getElementById('gameFrame');
+    const html = `<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>${g.id}</title></head><body style="margin:0;background:#000;color:#fff;font-family:Arial">
+      <canvas id='gameCanvas'></canvas>
+      <script src='${g.file}'></script>
+      <script>window.initMobileControls && window.initMobileControls('directional');</script>
+    </body></html>`;
+    iframe.src = 'data:text/html;base64,'+btoa(unescape(encodeURIComponent(html)));
+  }
+  function closeGame(){
+    document.getElementById('gameFrameWrapper').style.display='none';
+    document.getElementById('gameFrame').src='about:blank';
+  }
+  document.addEventListener('DOMContentLoaded', buildMenu);
+  </script>
+  <!-- Marcadores para chequear existencia de scripts (evita abrir juegos que no estén) -->
+  <meta data-script-4enraya.js />
+  <meta data-script-ahorcado.js />
+  <meta data-script-arkanoid.js />
+  <meta data-script-bubble.js />
+  <meta data-script-laberinto.js />
+  <meta data-script-memoria.js />
+  <meta data-script-serpiente.js />
+  <meta data-script-sokoban.js />
+  <meta data-script-quiz.js />
+  <meta data-script-flappy.js />
+  <meta data-script-paracaidista.js />
+  <meta data-script-recoge-moras.js />
+  <meta data-script-moto-desierto.js />
+  <meta data-script-nave-exploradora.js />
+  <script src="mobile-controls.js"></script>
+</head>
+<body>
+  <header><h1>Juegos Locales</h1></header>
+  <div id="grid" class="grid"></div>
+  <div id="gameFrameWrapper">
+    <div id="gameHeader">
+      <button onclick="closeGame()">⟵ Volver</button>
+      <span style="font-weight:600">Juego</span>
+    </div>
+    <iframe id="gameFrame" title="game"></iframe>
+  </div>
+  <div id="errorOverlay"><div class="box"><h3>Error</h3><div id="errorDetails"></div><button onclick="this.parentNode.parentNode.style.display='none'">Cerrar</button></div></div>
+</body>
+</html>
