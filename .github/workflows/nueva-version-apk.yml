@@ -1,4 +1,4 @@
-name: 🚀 Nueva Versión APK v1.0.4
+name: 🚀 Nueva Versión APK v1.0.6
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   create-new-apk:
-    name: 🔨 Crear Nueva APK v1.0.4
+    name: 🔨 Crear Nueva APK v1.0.6
     runs-on: ubuntu-latest
     
     steps:
@@ -18,92 +18,106 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
+
+    - name: ☕ Setup Java (for signing)
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
         
-    - name: 🎯 Preparar APK v1.0.4
+    - name: 🎯 Preparar APK v1.0.6
       run: |
-        echo "🚀 Creando nueva versión APK v1.0.4..."
+        VERSION="1.0.6"
+        VERSION_CODE=6
+        echo "🚀 Creando nueva versión APK v$VERSION..."
         
         # Crear estructura de directorios
-        mkdir -p build/apk-v1.0.4/assets
-        mkdir -p build/apk-v1.0.4/res/values
-        mkdir -p build/apk-v1.0.4/res/mipmap-hdpi
-        mkdir -p build/apk-v1.0.4/res/mipmap-mdpi
-        mkdir -p build/apk-v1.0.4/res/mipmap-xhdpi
-        mkdir -p build/apk-v1.0.4/res/mipmap-xxhdpi
+        mkdir -p build/apk-v$VERSION/assets
+        mkdir -p build/apk-v$VERSION/res/values
+        mkdir -p build/apk-v$VERSION/res/mipmap-hdpi
+        mkdir -p build/apk-v$VERSION/res/mipmap-mdpi
+        mkdir -p build/apk-v$VERSION/res/mipmap-xhdpi
+        mkdir -p build/apk-v$VERSION/res/mipmap-xxhdpi
         
         # Copiar archivos del juego (excluyendo directorios problemáticos)
-        cp *.html build/apk-v1.0.4/assets/ 2>/dev/null || echo "No HTML files to copy"
-        cp *.js build/apk-v1.0.4/assets/ 2>/dev/null || echo "No JS files to copy"
-        cp *.css build/apk-v1.0.4/assets/ 2>/dev/null || echo "No CSS files to copy"
-        cp *.json build/apk-v1.0.4/assets/ 2>/dev/null || echo "No JSON files to copy"
+        cp *.html build/apk-v$VERSION/assets/ 2>/dev/null || echo "No HTML files to copy"
+        cp *.js build/apk-v$VERSION/assets/ 2>/dev/null || echo "No JS files to copy"
+        cp *.css build/apk-v$VERSION/assets/ 2>/dev/null || echo "No CSS files to copy"
+        cp *.json build/apk-v$VERSION/assets/ 2>/dev/null || echo "No JSON files to copy"
         
         # Copiar assets
         if [ -d "assets" ]; then
-          cp -r assets/* build/apk-v1.0.4/assets/
+          cp -r assets/* build/apk-v$VERSION/assets/
         fi
         
         # Copiar Android manifest y recursos
-        cp android-project/AndroidManifest.xml build/apk-v1.0.4/
-        cp android-project/res/values/strings.xml build/apk-v1.0.4/res/values/
+        # Actualizar versionName y versionCode en el manifest al vuelo
+        sed -i "s/android:versionCode=\"[0-9]\+\"/android:versionCode=\"$VERSION_CODE\"/" android-project/AndroidManifest.xml
+        sed -i "s/android:versionName=\"[0-9]\+\.[0-9]\+\.[0-9]\+\"/android:versionName=\"$VERSION\"/" android-project/AndroidManifest.xml
+
+        cp android-project/AndroidManifest.xml build/apk-v$VERSION/
+        cp android-project/res/values/strings.xml build/apk-v$VERSION/res/values/
         
         # Copiar iconos
         if [ -f "icons/icon-192x192.png" ]; then
           for density in hdpi mdpi xhdpi xxhdpi; do
-            cp icons/icon-192x192.png build/apk-v1.0.4/res/mipmap-$density/ic_launcher.png
+            cp icons/icon-192x192.png build/apk-v$VERSION/res/mipmap-$density/ic_launcher.png
           done
         fi
         
     - name: 📦 Crear APK
       run: |
-        echo "📦 Empaquetando APK v1.0.4..."
+        VERSION="1.0.6"
+        echo "📦 Empaquetando APK v$VERSION..."
         
-        cd build/apk-v1.0.4
+        cd build/apk-v$VERSION
         
         # Crear el APK como ZIP con estructura Android
-        zip -r "../Bruno_y_Vega_v1.0.4.apk" . \
+        zip -r "../Bruno_y_Vega_v$VERSION.apk" . \
           -x "*.DS_Store" "*.git*" "*.tmp" "*.log"
         
         cd ../..
         
         # Información del APK
-        APK_SIZE=$(stat -c%s "build/Bruno_y_Vega_v1.0.4.apk")
+        APK_SIZE=$(stat -c%s "build/Bruno_y_Vega_v$VERSION.apk")
         APK_SIZE_HUMAN=$(numfmt --to=iec $APK_SIZE)
-        echo "📱 APK v1.0.4 creado: $APK_SIZE_HUMAN"
+        echo "📱 APK v$VERSION creado: $APK_SIZE_HUMAN"
         
         # Verificar contenido
         echo "🔍 Contenido del APK:"
-        unzip -l "build/Bruno_y_Vega_v1.0.4.apk" | head -20
+        unzip -l "build/Bruno_y_Vega_v$VERSION.apk" | head -20
         
-    - name: 📤 Upload APK v1.0.4
+    - name: 📤 Upload APK v1.0.6 (unsigned)
       uses: actions/upload-artifact@v4
       with:
-        name: bruno-vega-v1.0.4-apk
-        path: build/Bruno_y_Vega_v1.0.4.apk
+        name: bruno-vega-v1.0.6-apk-unsigned
+        path: build/Bruno_y_Vega_v1.0.6.apk
         retention-days: 90
         
     - name: 🗂️ Actualizar Releases
       run: |
-        echo "🗂️ Actualizando directorio de releases..."
+        VERSION="1.0.6"
+        echo "🗂️ Actualizando directorio de releases... (v$VERSION)"
         
-        # Copiar a latest y v1.0.4
+        # Copiar a latest y version dedicada
         mkdir -p android-apk/releases/latest
-        mkdir -p android-apk/releases/v1.0.4
+        mkdir -p android-apk/releases/v$VERSION
         
-        cp "build/Bruno_y_Vega_v1.0.4.apk" "android-apk/releases/latest/Bruno y Vega-unsigned.apk"
-        cp "build/Bruno_y_Vega_v1.0.4.apk" "android-apk/releases/v1.0.4/Bruno_y_Vega_v1.0.4.apk"
+        cp "build/Bruno_y_Vega_v$VERSION.apk" "android-apk/releases/latest/Bruno y Vega-unsigned.apk"
+        cp "build/Bruno_y_Vega_v$VERSION.apk" "android-apk/releases/v$VERSION/Bruno_y_Vega_v$VERSION.apk"
         
         # Información del APK
-        APK_SIZE=$(stat -c%s "build/Bruno_y_Vega_v1.0.4.apk")
+        APK_SIZE=$(stat -c%s "build/Bruno_y_Vega_v$VERSION.apk")
         APK_SIZE_HUMAN=$(numfmt --to=iec $APK_SIZE)
         
-        echo "## ✅ Nueva APK v1.0.4 Lista $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "## ✅ Nueva APK v$VERSION Lista $(date)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🎯 Respuesta al Issue #26:" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **NUEVA VERSIÓN CREADA** - APK lista para descarga inmediata" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Versión Generada:" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **NUEVA VERSIÓN CREADA** - APK unsigned y lista para firma" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📊 Información del APK:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Versión:** 1.0.4" >> $GITHUB_STEP_SUMMARY
-        echo "- **Archivo:** Bruno_y_Vega_v1.0.4.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Versión:** $VERSION" >> $GITHUB_STEP_SUMMARY
+        echo "- **Archivo:** Bruno_y_Vega_v$VERSION.apk" >> $GITHUB_STEP_SUMMARY
         echo "- **Tamaño:** $APK_SIZE_HUMAN" >> $GITHUB_STEP_SUMMARY
         echo "- **Android:** 5.0+ (API 21+)" >> $GITHUB_STEP_SUMMARY
         echo "- **Juegos:** 27 juegos educativos incluidos" >> $GITHUB_STEP_SUMMARY
@@ -114,10 +128,47 @@ jobs:
         echo "- ✅ Estructura Android válida" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Listo para instalación" >> $GITHUB_STEP_SUMMARY
         
+    - name: 🔐 Preparar Keystore (usar secretos si existen)
+      env:
+        S_APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+        S_APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+        S_APK_KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+        S_APK_KEY_PASSWORD: ${{ secrets.APK_KEY_PASSWORD }}
+      run: |
+        if [ -n "$S_APK_KEYSTORE_BASE64" ]; then
+          echo "🔐 Usando keystore proporcionado por secretos"
+          echo "$S_APK_KEYSTORE_BASE64" | base64 -d > bruno-vega.keystore || { echo "❌ Error decodificando keystore"; exit 1; }
+          STOREPASS="$S_APK_KEYSTORE_PASSWORD"
+          [ -z "$STOREPASS" ] && STOREPASS="changeit"
+          KEYPASS="$S_APK_KEY_PASSWORD"
+          [ -z "$KEYPASS" ] && KEYPASS="$STOREPASS"
+          KEYALIAS="$S_APK_KEY_ALIAS"
+          [ -z "$KEYALIAS" ] && KEYALIAS="bruno-vega-key"
+          echo "STOREPASS=$STOREPASS" >> $GITHUB_ENV
+          echo "KEYPASS=$KEYPASS" >> $GITHUB_ENV
+          echo "KEYALIAS=$KEYALIAS" >> $GITHUB_ENV
+        else
+          echo "⚠️ No hay secretos configurados. Generando keystore temporal (solo para pruebas)."
+          keytool -genkey -v \
+            -keystore bruno-vega.keystore \
+            -alias bruno-vega-key \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "brunovega123" \
+            -keypass "brunovega123" \
+            -dname "CN=Bruno y Vega Games, OU=Educational Games, O=Bruno y Vega, L=Madrid, ST=Madrid, C=ES"
+          echo "STOREPASS=brunovega123" >> $GITHUB_ENV
+            
+          echo "KEYPASS=brunovega123" >> $GITHUB_ENV
+          echo "KEYALIAS=bruno-vega-key" >> $GITHUB_ENV
+        fi
+
     - name: 🔑 Sign APK
       run: |
+        VERSION="1.0.6"
         APK_FILE="android-apk/releases/latest/Bruno y Vega-unsigned.apk"
-        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-signed.apk"
+        SIGNED_APK="android-apk/releases/latest/Bruno y Vega-v$VERSION-signed.apk"
 
         # Copy the unsigned APK
         cp "$APK_FILE" "$SIGNED_APK"
@@ -127,34 +178,34 @@ jobs:
           -sigalg SHA256withRSA \
           -digestalg SHA-256 \
           -keystore bruno-vega.keystore \
-          -storepass "brunovega123" \
-          -keypass "brunovega123" \
+          -storepass "$STOREPASS" \
+          -keypass "$KEYPASS" \
           "$SIGNED_APK" \
-          bruno-vega-key
+          "$KEYALIAS"
 
-        echo "✅ APK signed successfully"
+        echo "✅ APK signed successfully (v$VERSION)"
 
         # Verify the signature
         jarsigner -verify -verbose "$SIGNED_APK"
 
         if [ $? -eq 0 ]; then
-          echo "✅ APK signature verified"
+          echo "✅ APK signature verified (v$VERSION)"
         else
           echo "❌ APK signature verification failed"
           exit 1
         fi
 
-    - name: 📤 Upload Signed APK
+    - name: 📤 Upload Signed APK v1.0.6
       uses: actions/upload-artifact@v4
       with:
-        name: bruno-vega-signed-apk
-        path: android-apk/releases/latest/Bruno y Vega-signed.apk
+        name: bruno-vega-v1.0.6-apk-signed
+        path: android-apk/releases/latest/Bruno y Vega-v1.0.6-signed.apk
         retention-days: 30
 
-    - name: 🚀 Commit Nueva APK
+    - name: 🚀 Commit Nueva APK v1.0.6
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add android-apk/releases/
-        git commit -m "🚀 Nueva APK v1.0.4 - Issue #26 resuelto" || exit 0
+        git commit -m "🚀 Nueva APK v1.0.6" || exit 0
         git push || exit 0

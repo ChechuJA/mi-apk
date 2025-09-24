@@ -1,0 +1,149 @@
+name: 📱 Build Real APK v1.0.7
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚡ Gradle Cache
+        uses: actions/cache@v4
+        with:
+            path: |
+              ~/.gradle/caches
+              ~/.gradle/wrapper
+            key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
+            restore-keys: |
+              gradle-${{ runner.os }}-
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: 📦 Copy Web Assets into Android Wrapper
+        run: |
+          VERSION=1.0.7
+          WRAPPER=android-wrapper/app/src/main/assets
+          mkdir -p "$WRAPPER"
+          shopt -s nullglob
+          for f in *.html *.js *.css *.json; do
+            [ -f "$f" ] && cp "$f" "$WRAPPER/"
+          done
+          if [ -d assets ]; then
+            mkdir -p "$WRAPPER/assets"
+            cp -r assets/* "$WRAPPER/assets/"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: 🔐 Generate Keystore (dev) (if no secret)
+        id: keystore
+        env:
+          S_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+          S_KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+          S_STORE_PASS: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          S_KEY_PASS: ${{ secrets.APK_KEY_PASSWORD }}
+        run: |
+          if [ -n "$S_KEYSTORE_B64" ]; then
+            echo "🔐 Using provided keystore from secrets"
+            echo "$S_KEYSTORE_B64" | base64 -d > release.keystore || { echo "❌ Error decoding keystore"; exit 1; }
+            KEY_ALIAS=${S_KEY_ALIAS:-brunoVegaDevKey}
+            STORE_PASS=${S_STORE_PASS:-changeme}
+            KEY_PASS=${S_KEY_PASS:-$STORE_PASS}
+            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+            echo "STORE_PASS=$STORE_PASS" >> $GITHUB_ENV
+            echo "KEY_PASS=$KEY_PASS" >> $GITHUB_ENV
+          else
+            echo "⚠️ No keystore secret found. Generating dev keystore"
+            keytool -genkey -noprompt -v \
+              -keystore release.keystore \
+              -alias brunoVegaDevKey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass devBrunoVega123 \
+              -keypass devBrunoVega123 \
+              -dname "CN=Bruno y Vega, OU=Dev, O=BrunoVega, L=Madrid, ST=Madrid, C=ES"
+            echo "KEY_ALIAS=brunoVegaDevKey" >> $GITHUB_ENV
+            echo "STORE_PASS=devBrunoVega123" >> $GITHUB_ENV
+            echo "KEY_PASS=devBrunoVega123" >> $GITHUB_ENV
+          fi
+
+      - name: 🛠️ Build Release APK
+        working-directory: android-wrapper
+        run: |
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 🔎 List APK Outputs
+        run: |
+          ls -R android-wrapper/app/build/outputs/apk || true
+
+      - name: ✍️ Sign & Align APK
+        run: |
+          VERSION=${VERSION:-1.0.7}
+          UNSIGNED=android-wrapper/app/build/outputs/apk/release/app-release-unsigned.apk
+          ALIGNED=app-release-aligned.apk
+          SIGNED=Bruno_y_Vega_v${VERSION}_signed.apk
+
+          if [ ! -f "$UNSIGNED" ]; then echo "❌ APK unsigned no encontrado"; exit 1; fi
+
+          echo "🔧 Installing build-tools (zipalign/apksigner)"
+          sudo apt-get update -y
+          sudo apt-get install -y zipalign apksigner || true
+
+          if command -v zipalign >/dev/null 2>&1; then
+            zipalign -p 4 "$UNSIGNED" "$ALIGNED"
+          else
+            echo "⚠️ zipalign no disponible, copiando directo"; cp "$UNSIGNED" "$ALIGNED"
+          fi
+
+          if command -v apksigner >/dev/null 2>&1; then
+            apksigner sign \
+              --ks release.keystore \
+              --ks-pass pass:$STORE_PASS \
+              --key-pass pass:$KEY_PASS \
+              --out "$SIGNED" \
+              "$ALIGNED"
+            apksigner verify --verbose "$SIGNED"
+          else
+            echo "⚠️ apksigner no disponible, fallback jarsigner"
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore release.keystore \
+              -storepass $STORE_PASS -keypass $KEY_PASS \
+              "$ALIGNED" $KEY_ALIAS
+            cp "$ALIGNED" "$SIGNED"
+          fi
+
+          mkdir -p android-apk/releases/latest android-apk/releases/v$VERSION
+          cp "$SIGNED" android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk
+          cp "$SIGNED" android-apk/releases/v$VERSION/Bruno_y_Vega_v${VERSION}_signed.apk
+
+      - name: 📤 Upload Signed APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-vega-v1.0.7-signed-real
+          path: android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk
+          retention-days: 30
+
+      - name: 📝 Summary
+        run: |
+          VERSION=${VERSION:-1.0.7}
+          echo "## ✅ APK real generada v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- Keystore alias: $KEY_ALIAS" >> $GITHUB_STEP_SUMMARY
+          echo "- Archivo principal: Bruno_y_Vega_latest_signed.apk" >> $GITHUB_STEP_SUMMARY
+          echo "- Archivo versionado: Bruno_y_Vega_v${VERSION}_signed.apk" >> $GITHUB_STEP_SUMMARY
+          echo "- Instalación: Habilita orígenes desconocidos y abre la APK" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚀 Commit APK (opcional)
+        run: |
+          VERSION=${VERSION:-1.0.7}
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add android-apk/releases/latest/Bruno_y_Vega_latest_signed.apk android-apk/releases/v$VERSION/ || true
+          git commit -m "📱 APK real firmada v$VERSION" || exit 0
+          git push || true
