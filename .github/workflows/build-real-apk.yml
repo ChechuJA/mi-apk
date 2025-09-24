@@ -33,13 +33,21 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: 🧱 Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 11076708
-          packages: |-
-            platforms;android-34
-            build-tools;34.0.0
+      - name: 🧱 Install Android SDK Packages (manual)
+        shell: bash
+        run: |
+          set -e
+          echo "Accepting licenses" || true
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          echo "Installing platform 34 + build-tools 34.0.0"
+          if sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"; then
+            echo "✅ Installed API 34"
+          else
+            echo "⚠️ API 34 not available, falling back to 33"
+            sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+            sed -i 's/compileSdk 34/compileSdk 33/' android-wrapper/app/build.gradle || true
+            sed -i 's/targetSdk 34/targetSdk 33/' android-wrapper/app/build.gradle || true
+          fi
 
       - name: 📦 Copy Web Assets into Android Wrapper
         run: |
