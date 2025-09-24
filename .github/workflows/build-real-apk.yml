@@ -42,8 +42,12 @@ jobs:
           curl -sSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
           unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          # Añadir a PATH inmediatamente (para este paso) y para pasos futuros
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "Aceptando licencias"
+          which sdkmanager || true
+          ls -l "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" || true
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           echo "📦 Instalando platform-tools + API 34"
           if sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"; then
@@ -51,7 +55,7 @@ jobs:
             echo "$ANDROID_SDK_ROOT/build-tools/34.0.0" >> $GITHUB_PATH
           else
             echo "⚠️ No se pudo instalar API 34. Fallback a API 33"
-            sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+            sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" || { echo "❌ sdkmanager fallo en fallback"; ls -R "$ANDROID_SDK_ROOT"; exit 1; }
             sed -i 's/compileSdk 34/compileSdk 33/' android-wrapper/app/build.gradle || true
             sed -i 's/targetSdk 34/targetSdk 33/' android-wrapper/app/build.gradle || true
             echo "$ANDROID_SDK_ROOT/build-tools/33.0.2" >> $GITHUB_PATH

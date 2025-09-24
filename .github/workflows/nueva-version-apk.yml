@@ -1,9 +1,11 @@
 name: 🚀 Nueva Versión APK v1.0.6
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+
+# ⚠️ Este workflow queda desactivado de ejecuciones automáticas porque genera un "pseudo-APK"
+# (solo un ZIP con estructura) que NO es instalable de forma fiable. Usa en su lugar
+# el workflow 'Build Real APK (auto-version)'.
 
 jobs:
   create-new-apk:
