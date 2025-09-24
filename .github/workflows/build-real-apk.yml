@@ -28,6 +28,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: 🧱 Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 11076708
+          packages: |-
+            platforms;android-34
+            build-tools;34.0.0
+
       - name: 📦 Copy Web Assets into Android Wrapper
         run: |
           VERSION=1.0.7
@@ -74,10 +82,12 @@ jobs:
             echo "KEY_PASS=devBrunoVega123" >> $GITHUB_ENV
           fi
 
-      - name: 🛠️ Build Release APK
-        working-directory: android-wrapper
-        run: |
-          ./gradlew assembleRelease --no-daemon
+      - name: 🛠️ Build Release APK (Gradle Action)
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 8.9
+          build-root-directory: android-wrapper
+          arguments: assembleRelease --no-daemon -x test
 
       - name: 🔎 List APK Outputs
         run: |
