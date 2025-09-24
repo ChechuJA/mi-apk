@@ -73,7 +73,27 @@ jobs:
           echo "APP_VERSION_CODE=$APP_VERSION_CODE" >> $GITHUB_ENV
           chmod +x android-wrapper/gradlew || true
 
-      - name: 🔐 Generate Keystore (dev) (if no secret)
+      - name: � Ensure Launcher Icons
+        run: |
+          ICON_SRC=icons/icon-192x192.png
+          if [ -f "$ICON_SRC" ]; then
+            echo "Creando iconos mipmap a partir de $ICON_SRC"
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              DIR=android-wrapper/app/src/main/res/mipmap-$density
+              mkdir -p "$DIR"
+              cp "$ICON_SRC" "$DIR/ic_launcher.png"
+            done
+          else
+            echo "⚠️ No se encontró $ICON_SRC, creando placeholder"
+            for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              DIR=android-wrapper/app/src/main/res/mipmap-$density
+              mkdir -p "$DIR"
+              convert -size 192x192 xc:white -gravity center -pointsize 32 -fill black -annotate 0 "BV" "$DIR/ic_launcher.png" || true
+            done
+          fi
+          echo "Iconos listos";
+
+      - name: �🔐 Generate Keystore (dev) (if no secret)
         id: keystore
         env:
           S_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
