@@ -30,9 +30,9 @@ Una colección de juegos educativos y divertidos desarrollada como Progressive W
 
 Este proyecto utiliza tecnologías web modernas (HTML5, CSS3, JavaScript) con Service Worker para funcionalidad offline, convertido a APK usando PWA Builder.
 
-## 📋 Next Steps
+## 📋 Próximos Pasos
 
-Para desarrolladores y testers: **[Ver NEXT_STEPS.md](NEXT_STEPS.md)** para:
+Para desarrolladores y testers: **[Ver NEXT_STEPS.md](NEXT_STEPS.md)** (documentación técnica) para:
 - ✅ Instrucciones de construcción automática de APK
 - ✅ Guía de descarga desde GitHub Actions
 - ✅ Procedimientos de instalación en Android 15
