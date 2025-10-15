@@ -141,7 +141,7 @@
 **Reference Implementation**:
 - Game file: `script-flappy.js`
 - Mobile controls: `mobile-controls.js`
-- Test file: `build-local/apk-v1.0.4/assets/script-flappy.js`
+- Build process: Use `./build-apk.sh` or GitHub Actions workflow
 
 ---
 

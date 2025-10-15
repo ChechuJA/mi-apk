@@ -15,12 +15,29 @@ Este módulo Android genera una APK nativa que envuelve los juegos HTML/JS del p
 - MainActivity.kt -> carga `file:///android_asset/index.html`
 
 ## Build local
+
+### Opción 1: Script automatizado (recomendado)
+Desde el directorio raíz del repositorio:
+```bash
+./build-apk.sh
+```
+Este script copia los assets web y construye el APK automáticamente.
+
+### Opción 2: Build manual
 Desde `android-wrapper/`:
 ```bash
+# 1. Copiar assets web manualmente
+mkdir -p app/src/main/assets
+cp ../*.html ../*.js ../*.css ../*.json app/src/main/assets/
+cp -r ../assets app/src/main/assets/
+
+# 2. Construir APK
 ./gradlew assembleRelease
 ```
+
 APK resultante:
 ```
 app/build/outputs/apk/release/app-release-unsigned.apk
 ```
-Luego se firma con `apksigner`.
+
+**Nota**: El APK sin firmar funciona para desarrollo. Para producción, debe firmarse con `apksigner`.

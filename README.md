@@ -36,6 +36,19 @@ Este proyecto utiliza tecnologías web modernas (HTML5, CSS3, JavaScript) con Se
 - **Target SDK:** Android 15 (API 35)
 - **WebView** para renderizado de juegos
 
+### 🛠️ Construcción del APK
+
+#### Construcción Local
+```bash
+# Construir APK localmente
+./build-apk.sh
+```
+
+El APK se generará en: `android-wrapper/app/build/outputs/apk/release/app-release-unsigned.apk`
+
+#### Construcción Automática (GitHub Actions)
+El APK se construye automáticamente en cada push a `main` usando el workflow `.github/workflows/build-real-apk.yml`
+
 ### 📚 Documentación Técnica
 
 - [Android 15 Compatibility Guide](ANDROID_15_COMPATIBILITY.md) - Guía completa de compatibilidad
