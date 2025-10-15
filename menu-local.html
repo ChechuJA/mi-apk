@@ -26,8 +26,10 @@
     #errorOverlay h3 { margin-top:0; color:#ff8888; }
     #errorDetails { white-space:pre-wrap; font-size:11px; background:#0d1117; padding:8px; border-radius:6px; max-height:200px; overflow:auto; }
   </style>
-  <script src="mobile-controls.js"></script>
+  <script src="mobile-controls.js" onerror="console.warn('[menu-local] mobile-controls.js failed to load, continuing without it')"></script>
   <script>
+  console.log('[menu-local] Script loaded, initializing...');
+  
   // Captura de errores globales para mostrarlos en overlay
   window.addEventListener('error', e => {
     console.error('Global error:', e.message, e.filename, e.lineno);
@@ -215,8 +217,28 @@
   
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[menu-local] DOM ready, building menu');
-    buildMenu();
+    try {
+      buildMenu();
+      console.log('[menu-local] Menu built successfully');
+    } catch(e) {
+      console.error('[menu-local] Error building menu:', e);
+      showError('Error al construir menú', e.message + '\n' + e.stack);
+    }
   });
+  
+  // Fallback si DOMContentLoaded ya pasó
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('[menu-local] Document already ready, building menu immediately');
+    setTimeout(() => {
+      if(!document.getElementById('grid').hasChildNodes()){
+        try {
+          buildMenu();
+        } catch(e) {
+          console.error('[menu-local] Error in fallback buildMenu:', e);
+        }
+      }
+    }, 100);
+  }
   </script>
 </head>
 <body>
