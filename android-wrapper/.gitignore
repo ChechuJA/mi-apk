@@ -4,3 +4,6 @@
 /local.properties
 /.idea
 **/*.keystore
+# Assets are copied during CI/CD build, not committed
+/app/src/main/assets/
+/app/src/main/res/mipmap-*/
