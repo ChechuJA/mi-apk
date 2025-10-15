@@ -2,7 +2,7 @@
 <html lang="es" data-environment="apk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
   <title>Juegos Locales</title>
   <!-- Base necesaria para que los recursos relativos funcionen cuando se inyecta el HTML vía loadDataWithBaseURL -->
   <base href="file:///android_asset/" />
@@ -15,44 +15,64 @@
     .card:hover { border-color:#1f6feb; box-shadow:0 0 0 2px #1f6feb44; }
     .card h2 { font-size:14px; margin:0 0 4px; line-height:1.2; }
     .card small { opacity:.7; font-size:11px; }
-    #gameFrameWrapper { position:fixed; inset:0; background:#000; display:none; flex-direction:column; }
+    #menuScreen { display:block; }
+    #gameScreen { display:none; flex-direction:column; position:fixed; inset:0; background:#000; }
     #gameHeader { background:#1f6feb; padding:8px 12px; display:flex; align-items:center; gap:8px; }
-    #gameHeader button { background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px 10px; cursor:pointer; }
+    #gameHeader button { background:#0d1117; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:14px; }
     #gameHeader button:hover { background:#161b22; }
-    iframe { flex:1; width:100%; border:0; background:#000; }
-    #errorOverlay { position:fixed; inset:0; background:#000c; display:none; align-items:center; justify-content:center; }
+    #gameCanvas { flex:1; width:100%; background:#000; touch-action:none; }
+    #errorOverlay { position:fixed; inset:0; background:#000c; display:none; align-items:center; justify-content:center; z-index:9999; }
     #errorOverlay .box { background:#161b22; border:1px solid #ff5555; padding:20px; max-width:360px; border-radius:10px; box-shadow:0 4px 20px #000; }
     #errorOverlay h3 { margin-top:0; color:#ff8888; }
     #errorDetails { white-space:pre-wrap; font-size:11px; background:#0d1117; padding:8px; border-radius:6px; max-height:200px; overflow:auto; }
   </style>
+  <script src="mobile-controls.js"></script>
   <script>
   // Captura de errores globales para mostrarlos en overlay
-  window.addEventListener('error', e => showError('Error JS', e.message + '\n' + (e.filename||'') + ':' + e.lineno));
-  window.addEventListener('unhandledrejection', e => showError('Promise rechazada', String(e.reason)));
+  window.addEventListener('error', e => {
+    console.error('Global error:', e.message, e.filename, e.lineno);
+    showError('Error JS', e.message + '\n' + (e.filename||'') + ':' + e.lineno);
+  });
+  window.addEventListener('unhandledrejection', e => {
+    console.error('Unhandled rejection:', e.reason);
+    showError('Promise rechazada', String(e.reason));
+  });
+  
   function showError(title, details){
     const overlay = document.getElementById('errorOverlay');
-    overlay.style.display='flex';
-    overlay.querySelector('h3').textContent=title;
-    document.getElementById('errorDetails').textContent=details;
+    if(overlay){
+      overlay.style.display='flex';
+      const h3 = overlay.querySelector('h3');
+      if(h3) h3.textContent=title;
+      const detailsEl = document.getElementById('errorDetails');
+      if(detailsEl) detailsEl.textContent=details;
+    }
   }
+  
   const games = [
+    { id:'laberinto', file:'script-laberinto.js', desc:'Laberinto de colores' },
     { id:'4enraya', file:'script-4enraya.js', desc:'Conecta 4' },
-    { id:'ahorcado', file:'script-ahorcado.js', desc:'Ahorcado' },
     { id:'arkanoid', file:'script-arkanoid.js', desc:'Arkanoid' },
-    { id:'bubble', file:'script-bubble.js', desc:'Bubble' },
-    { id:'laberinto', file:'script-laberinto.js', desc:'Laberinto' },
-    { id:'memoria', file:'script-memoria.js', desc:'Memoria' },
+    { id:'memoria', file:'script-memoria.js', desc:'Memoria animales' },
     { id:'serpiente', file:'script-serpiente.js', desc:'Serpiente' },
-    { id:'sokoban', file:'script-sokoban.js', desc:'Sokoban' },
-    { id:'quiz', file:'script-quiz.js', desc:'Quiz' },
-    { id:'flappy', file:'script-flappy.js', desc:'Flappy' },
-    { id:'paracaidista', file:'script-paracaidista.js', desc:'Paracaidista' },
-    { id:'recoge-moras', file:'script-recoge-moras.js', desc:'Recoge moras' },
-    { id:'moto-desierto', file:'script-moto-desierto.js', desc:'Moto desierto' },
-    { id:'nave-exploradora', file:'script-nave-exploradora.js', desc:'Nave exploradora' }
+    { id:'sokoban', file:'script-sokoban.js', desc:'Empuja Cajas' },
+    { id:'paracaidista', file:'script-paracaidista.js', desc:'Bruno el paracaidista' },
+    { id:'nave-exploradora', file:'script-nave-exploradora.js', desc:'Nave exploradora' },
+    { id:'flappy', file:'script-flappy.js', desc:'Flappy Bird' },
+    { id:'ahorcado', file:'script-ahorcado.js', desc:'Ahorcado espacial' },
+    { id:'quiz', file:'script-quiz.js', desc:'Quiz de Conocimiento' },
+    { id:'bubble', file:'script-bubble.js', desc:'Dispara Colores' },
+    { id:'recoge-moras', file:'script-recoge-moras.js', desc:'Recoge Moras' },
+    { id:'moto-desierto', file:'script-moto-desierto.js', desc:'Moto en el Desierto' }
   ];
+  
+  let currentScript = null;
+  let currentCleanup = null;
+  
   function buildMenu(){
     const grid=document.getElementById('grid');
+    if(!grid) return;
+    
     games.forEach(g=>{
       const c=document.createElement('div');
       c.className='card';
@@ -60,47 +80,168 @@
       c.onclick=()=>launchGame(g);
       grid.appendChild(c);
     });
+    
     // Señal visual de que el menú se renderizó
     const dbg=document.getElementById('debugBanner');
     if(dbg) dbg.textContent+=' | menu listo';
+    console.log('[menu-local] Menu built with', games.length, 'games');
   }
+  
   function launchGame(g){
-    const wrapper=document.getElementById('gameFrameWrapper');
-    wrapper.style.display='flex';
-    // We inject a blank html with dynamic script tag so no remote iframes
-    const iframe=document.getElementById('gameFrame');
-    const html = `<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><base href="file:///android_asset/"><title>${g.id}</title></head><body style="margin:0;background:#000;color:#fff;font-family:Arial">
-      <div style="position:absolute;top:4px;left:6px;font:10px monospace;background:#1f6feb;padding:2px 4px;border-radius:4px;opacity:.7;z-index:99">Cargando ${g.file}</div>
-      <canvas id='gameCanvas'></canvas>
-      <script src='${g.file}' onerror="document.body.insertAdjacentHTML('beforeend','<div style=\\"position:absolute;top:24px;left:6px;background:#900;padding:4px;font:12px monospace\\">No se pudo cargar ${g.file}</div>')"></script>
-      <script>console.log('[iframe] Juego ${g.id} inicializando'); window.initMobileControls && window.initMobileControls('directional');</script>
-    </body></html>`;
-    iframe.src = 'data:text/html;base64,'+btoa(unescape(encodeURIComponent(html)));
+    console.log('[menu-local] Launching game:', g.id, g.file);
+    
+    // Hide menu, show game screen
+    const menuScreen = document.getElementById('menuScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    if(menuScreen) menuScreen.style.display='none';
+    if(gameScreen) gameScreen.style.display='flex';
+    
+    // Get canvas
+    const canvas = document.getElementById('gameCanvas');
+    if(!canvas){
+      showError('Error', 'Canvas not found');
+      return;
+    }
+    
+    // Clear canvas
+    const ctx = canvas.getContext('2d');
+    if(ctx){
+      canvas.width = 800;
+      canvas.height = 500;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Clean up previous game
+    if(currentCleanup){
+      try {
+        currentCleanup();
+      } catch(e) {
+        console.error('Error cleaning up previous game:', e);
+      }
+      currentCleanup = null;
+    }
+    
+    // Remove previous script
+    if(currentScript){
+      document.body.removeChild(currentScript);
+      currentScript = null;
+    }
+    
+    // Clean up mobile controls
+    if(window.cleanupMobileControls){
+      window.cleanupMobileControls();
+    }
+    
+    // Load game script
+    const script = document.createElement('script');
+    script.src = g.file + '?v=' + Date.now();
+    script.onload = () => {
+      console.log('[menu-local] Game script loaded:', g.file);
+      
+      if(typeof window.registerGame === 'function'){
+        try {
+          currentCleanup = window.registerGame();
+          canvas.focus();
+          
+          // Initialize mobile controls
+          if(window.initMobileControls){
+            setTimeout(() => {
+              window.initMobileControls(g.id);
+            }, 100);
+          }
+          
+          console.log('[menu-local] Game initialized successfully');
+        } catch(e) {
+          console.error('[menu-local] Error initializing game:', e);
+          showError('Error al inicializar', e.message);
+        }
+      } else {
+        console.error('[menu-local] registerGame not found in', g.file);
+        showError('Error', 'registerGame no encontrado en ' + g.file);
+      }
+    };
+    script.onerror = (e) => {
+      console.error('[menu-local] Error loading script:', g.file, e);
+      showError('Error de carga', 'No se pudo cargar ' + g.file);
+    };
+    
+    document.body.appendChild(script);
+    currentScript = script;
+    
     const dbg=document.getElementById('debugBanner');
-    if(dbg) dbg.textContent='Abriendo '+g.file;
+    if(dbg) dbg.textContent='Cargando ' + g.file;
   }
+  
   function closeGame(){
-    document.getElementById('gameFrameWrapper').style.display='none';
-    document.getElementById('gameFrame').src='about:blank';
+    console.log('[menu-local] Closing game');
+    
+    // Clean up game
+    if(currentCleanup){
+      try {
+        currentCleanup();
+      } catch(e) {
+        console.error('Error cleaning up:', e);
+      }
+      currentCleanup = null;
+    }
+    
+    // Remove script
+    if(currentScript){
+      document.body.removeChild(currentScript);
+      currentScript = null;
+    }
+    
+    // Clean up mobile controls
+    if(window.cleanupMobileControls){
+      window.cleanupMobileControls();
+    }
+    
+    // Clear canvas
+    const canvas = document.getElementById('gameCanvas');
+    if(canvas){
+      const ctx = canvas.getContext('2d');
+      if(ctx){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    
+    // Show menu, hide game screen
+    const menuScreen = document.getElementById('menuScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    if(menuScreen) menuScreen.style.display='block';
+    if(gameScreen) gameScreen.style.display='none';
+    
     const dbg=document.getElementById('debugBanner');
     if(dbg) dbg.textContent='Menú';
   }
-  document.addEventListener('DOMContentLoaded', buildMenu);
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[menu-local] DOM ready, building menu');
+    buildMenu();
+  });
   </script>
-  <!-- Marcadores eliminados: los atributos data-* con punto no eran válidos y el filtrado impedía que aparecieran juegos -->
-  <script src="mobile-controls.js"></script>
 </head>
 <body>
-  <header><h1>Juegos Locales</h1></header>
-  <div id="debugBanner" style="position:fixed;bottom:0;left:0;background:#1f6feb;color:#fff;font:10px monospace;padding:2px 4px;z-index:1000;border-top-right-radius:6px;opacity:.6">menu-local cargado</div>
-  <div id="grid" class="grid"></div>
-  <div id="gameFrameWrapper">
+  <div id="menuScreen">
+    <header><h1>Juegos Locales</h1></header>
+    <div id="debugBanner" style="position:fixed;bottom:0;left:0;background:#1f6feb;color:#fff;font:10px monospace;padding:2px 4px;z-index:1000;border-top-right-radius:6px;opacity:.6">menu-local cargado</div>
+    <div id="grid" class="grid"></div>
+  </div>
+  
+  <div id="gameScreen">
     <div id="gameHeader">
       <button onclick="closeGame()">⟵ Volver</button>
-      <span style="font-weight:600">Juego</span>
+      <span id="gameTitle" style="font-weight:600">Juego</span>
     </div>
-    <iframe id="gameFrame" title="game"></iframe>
+    <canvas id="gameCanvas" width="800" height="500" tabindex="0"></canvas>
   </div>
-  <div id="errorOverlay"><div class="box"><h3>Error</h3><div id="errorDetails"></div><button onclick="this.parentNode.parentNode.style.display='none'">Cerrar</button></div></div>
+  
+  <div id="errorOverlay">
+    <div class="box">
+      <h3>Error</h3>
+      <div id="errorDetails"></div>
+      <button onclick="this.parentNode.parentNode.style.display='none'" style="margin-top:10px;background:#1f6feb;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
 </body>
 </html>
