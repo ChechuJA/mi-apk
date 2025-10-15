@@ -41,6 +41,7 @@
 
 ### Requisitos del Sistema
 - **Android:** 5.0 (API 21) o superior
+- **Optimizado para:** Android 15 (API 35)
 - **RAM:** 1 GB mínimo (recomendado 2 GB)
 - **Almacenamiento:** 100 MB libres
 - **Internet:** Conexión opcional para futuras actualizaciones

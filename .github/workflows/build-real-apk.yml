@@ -37,14 +37,14 @@ jobs:
           set -e
           echo "Aceptando licencias"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          echo "📦 Instalando platform-tools + build-tools 34.0.0 + API 34"
-          if sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34"; then
-            echo "✅ API 34 lista"
+          echo "📦 Instalando platform-tools + build-tools 35.0.0 + API 35 (Android 15)"
+          if sdkmanager "platform-tools" "build-tools;35.0.0" "platforms;android-35"; then
+            echo "✅ API 35 (Android 15) lista"
           else
-            echo "⚠️ Fallback a API 33"
-            sdkmanager "platform-tools" "build-tools;33.0.2" "platforms;android-33" || { echo "❌ Falló fallback"; exit 1; }
-            sed -i 's/compileSdk 34/compileSdk 33/' android-wrapper/app/build.gradle || true
-            sed -i 's/targetSdk 34/targetSdk 33/' android-wrapper/app/build.gradle || true
+            echo "⚠️ Fallback a API 34"
+            sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" || { echo "❌ Falló fallback"; exit 1; }
+            sed -i 's/compileSdk 35/compileSdk 34/' android-wrapper/app/build.gradle || true
+            sed -i 's/targetSdk 35/targetSdk 34/' android-wrapper/app/build.gradle || true
           fi
           echo "Contenido build-tools:"
           ls -1 $ANDROID_HOME/build-tools || true
@@ -127,7 +127,7 @@ jobs:
       - name: 🛠️ Build Release APK (Gradle Action)
         uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 8.9
+          gradle-version: 8.10.2
           build-root-directory: android-wrapper
           arguments: assembleRelease --no-daemon -x test
         env:
