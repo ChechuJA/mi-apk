@@ -103,11 +103,9 @@
       return;
     }
     
-    // Clear canvas
+    // Clear canvas (let the game set its own size)
     const ctx = canvas.getContext('2d');
-    if(ctx){
-      canvas.width = 800;
-      canvas.height = 500;
+    if(ctx && canvas.width > 0 && canvas.height > 0){
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
