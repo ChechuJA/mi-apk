@@ -63,6 +63,51 @@
       z-index:1200; align-items:center; justify-content:center;
     }
     footer { margin:30px 0 16px; font-size:12px; color:#333; opacity:.7; }
+    /* Version splash screen */
+    #versionSplash {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index:9999;
+      cursor:pointer;
+      animation: fadeIn 0.5s ease-in;
+    }
+    #versionSplash.hidden {
+      display: none;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .version-content {
+      text-align: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .version-title {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .version-subtitle {
+      font-size: 24px;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+    .tap-hint {
+      font-size: 16px;
+      opacity: 0.8;
+      animation: fadeInOut 2s ease-in-out infinite;
+    }
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
     /* Overlay nombre */
     #playerOverlay {
       position:fixed; inset:0; display:none; align-items:center; justify-content:center;
@@ -129,6 +174,15 @@
   </style>
 </head>
 <body>
+
+  <!-- Version Splash Screen -->
+  <div id="versionSplash">
+    <div class="version-content">
+      <div class="version-title">Bruno y Vega</div>
+      <div class="version-subtitle">v1.0.0</div>
+      <div class="tap-hint">Toca la pantalla para continuar</div>
+    </div>
+  </div>
 
   <header>El Juego de Bruno y Vega</header>
 
@@ -231,6 +285,19 @@
   <footer>Creado para Bruno y Vega © 2025</footer>
 
   <script>
+    // Version splash screen handler
+    document.addEventListener('DOMContentLoaded', function() {
+      const versionSplash = document.getElementById('versionSplash');
+      
+      function hideSplash() {
+        versionSplash.classList.add('hidden');
+      }
+      
+      // Hide on click/tap
+      versionSplash.addEventListener('click', hideSplash);
+      versionSplash.addEventListener('touchstart', hideSplash);
+    });
+
     // Ajustes especiales para móvil
     document.addEventListener('DOMContentLoaded', function() {
       // Prevenir zoom al doble toque
