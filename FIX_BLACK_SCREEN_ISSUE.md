@@ -1,8 +1,8 @@
-# Fix para Pantalla Negra en APK - Issue #XX
+# Fix para Pantalla Negra en APK
 
 ## Problema Reportado
 
-El usuario reportó: "la apk se instala correctamente, pero me deja la pantalla en negro. solo puedo forzar su cierre"
+El usuario reportó en el issue: "la apk se instala correctamente, pero me deja la pantalla en negro. solo puedo forzar su cierre"
 
 ## Análisis del Problema
 
@@ -226,7 +226,7 @@ Es posible que versiones anteriores del APK usaran un enfoque diferente o que ca
 
 - [Android WebView Security](https://developer.android.com/reference/android/webkit/WebView)
 - [File URL Security in WebView](https://developer.android.com/reference/android/webkit/WebSettings#setAllowFileAccessFromFileURLs(boolean))
-- Issue original: #XX (pendiente de número)
+- Repositorio: https://github.com/ChechuJA/mi-apk
 
 ## Conclusión
 
