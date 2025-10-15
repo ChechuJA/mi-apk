@@ -7,7 +7,8 @@ Una colección de juegos educativos y divertidos desarrollada como Progressive W
 ### Opción 1: APK Directo (Recomendado)
 📥 **[Descargar e Instalar APK](android-apk/)** 
 - Tamaño: ~930 KB
-- Compatible con Android 5.0+
+- Compatible con Android 5.0+ (API 21)
+- **Optimizado para Android 15 (API 35)**
 - Sin publicidad, código abierto
 - 27 juegos incluidos
 
@@ -28,7 +29,18 @@ Una colección de juegos educativos y divertidos desarrollada como Progressive W
 
 ## 🚀 Desarrollo
 
-Este proyecto utiliza tecnologías web modernas (HTML5, CSS3, JavaScript) con Service Worker para funcionalidad offline, convertido a APK usando PWA Builder.
+Este proyecto utiliza tecnologías web modernas (HTML5, CSS3, JavaScript) con Service Worker para funcionalidad offline, empaquetado como APK nativo usando:
+
+- **Android Gradle Plugin 8.6.1**
+- **Gradle 8.10.2**
+- **Target SDK:** Android 15 (API 35)
+- **WebView** para renderizado de juegos
+
+### 📚 Documentación Técnica
+
+- [Android 15 Compatibility Guide](ANDROID_15_COMPATIBILITY.md) - Guía completa de compatibilidad
+- [Testing Single Game](TESTING_SINGLE_GAME.md) - Pruebas con un juego individual
+- [Android Wrapper README](android-wrapper/README.md) - Detalles del wrapper Android
 
 ## 📋 Próximos Pasos
 
