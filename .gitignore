@@ -28,6 +28,7 @@ Thumbs.db
 *.keystore
 *.jks
 build-proper-apk/
+build-local/
 classes.dex
 resources.arsc
 
