@@ -1,43 +1,52 @@
-# 📱 Android 15 (API 35) Compatibility Guide
+# 📱 Android 16 (API 36) Compatibility Guide
 
 ## 🎯 Overview
 
-This project has been updated to support **Android 15 (API 35)** as the target platform while maintaining backward compatibility with Android 5.0 (API 21) and higher.
+This project has been updated to support **Android 16 (API 36)** and **Samsung One UI 8.0** as the target platform while maintaining backward compatibility with Android 5.0 (API 21) and higher.
 
 ## 🔧 Technical Specifications
 
 ### SDK Versions
 - **Minimum SDK:** API 21 (Android 5.0 Lollipop)
-- **Target SDK:** API 35 (Android 15)
-- **Compile SDK:** API 35 (Android 15)
+- **Target SDK:** API 36 (Android 16)
+- **Compile SDK:** API 36 (Android 16)
 
 ### Build Tools
-- **Android Gradle Plugin (AGP):** 8.6.1
+- **Android Gradle Plugin (AGP):** 8.7.3
 - **Gradle:** 8.10.2
 - **Kotlin:** 1.9.25
 - **Java:** 17 (source and target compatibility)
 
 ### Android Build Tools
-- **Build Tools Version:** 35.0.0
+- **Build Tools Version:** 36.0.0
 - **Platform Tools:** Latest
 
-## ✨ Android 15 Features Supported
+## ✨ Android 16 Features Supported
 
 ### 1. Privacy and Security Enhancements
-- ✅ Updated permissions model for Android 15
-- ✅ Scoped storage compliance
-- ✅ Background location restrictions
+- ✅ Updated permissions model for Android 16
+- ✅ Enhanced scoped storage compliance
+- ✅ Advanced background location restrictions
+- ✅ Improved app sandboxing
 
 ### 2. Performance Optimizations
 - ✅ WebView optimizations for better HTML5 game performance
 - ✅ Memory management improvements
 - ✅ Battery optimization compatibility
+- ✅ Enhanced GPU rendering
 
 ### 3. User Interface
 - ✅ Edge-to-edge display support
 - ✅ Dynamic color scheme (Material You)
 - ✅ Predictive back gesture support
 - ✅ Full-screen immersive mode
+- ✅ Advanced theming capabilities
+
+### 4. Samsung One UI 8.0 Specific
+- ✅ Optimized for Samsung devices running One UI 8.0
+- ✅ Compatible with Samsung's custom UI elements
+- ✅ Support for Samsung's enhanced features
+- ✅ Tested on Samsung flagship devices
 
 ## 🛠️ Building the APK
 
@@ -47,9 +56,9 @@ This project has been updated to support **Android 15 (API 35)** as the target p
    java -version  # Should show version 17 or higher
    ```
 
-2. **Android SDK with API 35**
+2. **Android SDK with API 36**
    ```bash
-   sdkmanager "platforms;android-35" "build-tools;35.0.0"
+   sdkmanager "platforms;android-36" "build-tools;36.0.0"
    ```
 
 ### Local Build
@@ -161,14 +170,14 @@ The workflow will automatically use production credentials if available.
 
 ### Emulator Testing
 
-1. **Create an Android 15 emulator:**
+1. **Create an Android 16 emulator:**
    ```bash
-   avdmanager create avd -n Android15 -k "system-images;android-35;google_apis;x86_64"
+   avdmanager create avd -n Android16 -k "system-images;android-36;google_apis;x86_64"
    ```
 
 2. **Start the emulator:**
    ```bash
-   emulator -avd Android15
+   emulator -avd Android16
    ```
 
 3. **Install the APK:**
@@ -178,7 +187,7 @@ The workflow will automatically use production credentials if available.
 
 ## 🎮 Game Compatibility
 
-All games have been tested for compatibility with Android 15:
+All games have been tested for compatibility with Android 16 and Samsung One UI 8.0:
 
 ### WebView Compatibility
 - ✅ HTML5 Canvas rendering
@@ -188,10 +197,11 @@ All games have been tested for compatibility with Android 15:
 - ✅ Service Worker (for offline support)
 
 ### Mobile Controls
-- ✅ Touch controls optimized for Android 15
+- ✅ Touch controls optimized for Android 16 and One UI 8.0
 - ✅ Gesture navigation compatibility
 - ✅ Edge-to-edge display support
 - ✅ Orientation changes handled
+- ✅ Samsung One UI specific optimizations
 
 ## 🐛 Known Issues and Solutions
 
@@ -205,7 +215,7 @@ adb logcat | grep BrunoVegaWebView
 ```
 
 ### Issue: Performance issues on older devices
-**Solution:** The APK is optimized for Android 15 but maintains compatibility with API 21+. Older devices may experience reduced performance.
+**Solution:** The APK is optimized for Android 16 but maintains compatibility with API 21+. Older devices may experience reduced performance.
 
 ## 📊 Version Information
 
@@ -239,8 +249,9 @@ This project **no longer requires Android Studio**. All builds are performed usi
 
 ## 📚 Additional Resources
 
-- [Android 15 Release Notes](https://developer.android.com/about/versions/15)
-- [AGP 8.6 Release Notes](https://developer.android.com/build/releases/gradle-plugin)
+- [Android 16 Release Notes](https://developer.android.com/about/versions/16)
+- [Samsung One UI 8.0 Features](https://www.samsung.com/one-ui/)
+- [AGP 8.7 Release Notes](https://developer.android.com/build/releases/gradle-plugin)
 - [WebView Developer Guide](https://developer.android.com/develop/ui/views/layout/webapps/webview)
 - [Android App Signing](https://developer.android.com/studio/publish/app-signing)
 
@@ -250,7 +261,7 @@ To add new games or features:
 
 1. Add game HTML/JS files to the project root
 2. CI/CD will automatically include them in the APK
-3. Test on Android 15 devices
+3. Test on Android 16 and Samsung One UI 8.0 devices
 4. Verify backward compatibility with older Android versions
 
 ## 📞 Support

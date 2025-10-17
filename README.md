@@ -8,7 +8,7 @@ Una colección de juegos educativos y divertidos desarrollada como Progressive W
 📥 **[Descargar e Instalar APK](android-apk/)** 
 - Tamaño: ~930 KB
 - Compatible con Android 5.0+ (API 21)
-- **Optimizado para Android 15 (API 35)**
+- **Optimizado para Android 16 (API 36) y Samsung One UI 8.0**
 - Sin publicidad, código abierto
 - 27 juegos incluidos
 
@@ -31,9 +31,10 @@ Una colección de juegos educativos y divertidos desarrollada como Progressive W
 
 Este proyecto utiliza tecnologías web modernas (HTML5, CSS3, JavaScript) con Service Worker para funcionalidad offline, empaquetado como APK nativo usando:
 
-- **Android Gradle Plugin 8.6.1**
+- **Android Gradle Plugin 8.7.3**
 - **Gradle 8.10.2**
-- **Target SDK:** Android 15 (API 35)
+- **Target SDK:** Android 16 (API 36)
+- **One UI:** Samsung One UI 8.0 optimizado
 - **WebView** para renderizado de juegos
 
 ### 🛠️ Construcción del APK
@@ -51,7 +52,7 @@ El APK se construye automáticamente en cada push a `main` usando el workflow `.
 
 ### 📚 Documentación Técnica
 
-- [Android 15 Compatibility Guide](ANDROID_15_COMPATIBILITY.md) - Guía completa de compatibilidad
+- [Android 16 Compatibility Guide](ANDROID_16_COMPATIBILITY.md) - Guía completa de compatibilidad con Android 16 y One UI 8.0
 - [Testing Single Game](TESTING_SINGLE_GAME.md) - Pruebas con un juego individual
 - [Android Wrapper README](android-wrapper/README.md) - Detalles del wrapper Android
 
@@ -60,7 +61,7 @@ El APK se construye automáticamente en cada push a `main` usando el workflow `.
 Para desarrolladores y testers: **[Ver NEXT_STEPS.md](NEXT_STEPS.md)** (documentación técnica) para:
 - ✅ Instrucciones de construcción automática de APK
 - ✅ Guía de descarga desde GitHub Actions
-- ✅ Procedimientos de instalación en Android 15
+- ✅ Procedimientos de instalación en Android 16 y One UI 8.0
 - ✅ Testing del juego Flappy como prueba de concepto
 - ✅ Validación completa de funcionalidad
 
