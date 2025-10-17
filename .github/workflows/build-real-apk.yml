@@ -37,14 +37,14 @@ jobs:
           set -e
           echo "Aceptando licencias"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          echo "📦 Instalando platform-tools + build-tools 35.0.0 + API 35 (Android 15)"
-          if sdkmanager "platform-tools" "build-tools;35.0.0" "platforms;android-35"; then
-            echo "✅ API 35 (Android 15) lista"
+          echo "📦 Instalando platform-tools + build-tools 36.0.0 + API 36 (Android 16)"
+          if sdkmanager "platform-tools" "build-tools;36.0.0" "platforms;android-36"; then
+            echo "✅ API 36 (Android 16) lista"
           else
-            echo "⚠️ Fallback a API 34"
-            sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-34" || { echo "❌ Falló fallback"; exit 1; }
-            sed -i 's/compileSdk 35/compileSdk 34/' android-wrapper/app/build.gradle || true
-            sed -i 's/targetSdk 35/targetSdk 34/' android-wrapper/app/build.gradle || true
+            echo "⚠️ Fallback a API 35"
+            sdkmanager "platform-tools" "build-tools;35.0.0" "platforms;android-35" || { echo "❌ Falló fallback"; exit 1; }
+            sed -i 's/compileSdk 36/compileSdk 35/' android-wrapper/app/build.gradle || true
+            sed -i 's/targetSdk 36/targetSdk 35/' android-wrapper/app/build.gradle || true
           fi
           echo "Contenido build-tools:"
           ls -1 $ANDROID_HOME/build-tools || true
