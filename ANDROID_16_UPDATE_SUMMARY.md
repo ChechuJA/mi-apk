@@ -167,6 +167,12 @@ Pending Testing:
 
 ## 🐛 Known Considerations
 
+### ⚠️ Android 16 Preview Status
+- **IMPORTANT**: Android 16 (API 36) may currently be in preview/beta status
+- This update prepares the codebase for Android 16, but production deployment should wait for stable release
+- For production apps, consider testing thoroughly on preview devices before wide release
+- Monitor [Android Developer Blog](https://android-developers.googleblog.com/) for official release announcements
+
 ### API 36 Availability
 - Android 16 (API 36) may not be available in all SDK repositories yet
 - The build workflow includes a fallback to API 35 if API 36 is unavailable

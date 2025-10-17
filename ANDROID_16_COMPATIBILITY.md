@@ -1,5 +1,7 @@
 # 📱 Android 16 (API 36) Compatibility Guide
 
+> ⚠️ **Note**: Android 16 may currently be in preview/beta. This guide prepares the application for Android 16, but production deployment should wait until Android 16 is officially released and stable. Always test thoroughly before releasing to production users.
+
 ## 🎯 Overview
 
 This project has been updated to support **Android 16 (API 36)** and **Samsung One UI 8.0** as the target platform while maintaining backward compatibility with Android 5.0 (API 21) and higher.
