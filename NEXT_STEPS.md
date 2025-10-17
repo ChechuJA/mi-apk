@@ -51,7 +51,7 @@
 
 ---
 
-### 3. 📱 Install on Android 15 Device
+### 3. 📱 Install on Android 16 Device
 
 **Installation Steps**:
 
@@ -82,6 +82,7 @@
 - If you get "App not installed" error, check: `android-apk/installation-guide/SOLUCION_ERRORES.md`
 - Ensure you're installing the signed version, not unsigned
 - Verify device has enough storage space (~10 MB free)
+- **Samsung One UI 8.0 users**: Ensure app permissions are properly configured in Settings
 
 ---
 
@@ -188,7 +189,7 @@
 ## 🔍 Validation Criteria
 
 ### Critical Requirements
-✅ APK installs successfully on Android 15
+✅ APK installs successfully on Android 16 and Samsung One UI 8.0
 ✅ All games load without errors
 ✅ Mobile controls work on touch devices
 ✅ Performance is acceptable (>30fps)
@@ -206,10 +207,10 @@
 ## 📊 Test Results Template
 
 ```markdown
-## Android 15 Test Results
+## Android 16 Test Results
 
 **Device**: [Your device model]
-**Android Version**: 15
+**Android Version**: 16 / One UI Version: 8.0
 **Date**: [Test date]
 **APK Version**: [e.g., 20251015-103000-abc1234]
 

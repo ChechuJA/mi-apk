@@ -8,9 +8,10 @@
 
 - Sistema de versionado automático corregido
 - APK optimizado con mejor compresión (~5.4MB)
-- Compatibilidad verificada con Android 15 y Samsung ONE UI 7
+- Compatibilidad verificada con Android 16 y Samsung One UI 8.0
 - Mejoras en el sistema de releases de GitHub
 - Documentación actualizada con nuevas especificaciones
+- Actualización a Android Gradle Plugin 8.7.3
 
 ## 📱 Información del APK
 
@@ -18,8 +19,8 @@
 - **Build:**   
 - **Tamaño:** ~5.4MB (optimizado)
 - **Compatibilidad:** Android 5.0+ (API 21+)
-- **Samsung ONE UI 7:** ✅ Compatible
-- **Android 15:** ✅ Compatible
+- **Samsung One UI 8.0:** ✅ Compatible
+- **Android 16:** ✅ Compatible
 - **Juegos:** 27 juegos incluidos
 
 ## 🔧 Instalación
