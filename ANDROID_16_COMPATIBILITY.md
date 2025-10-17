@@ -86,8 +86,8 @@ The project uses GitHub Actions for automated builds. The workflow:
 
 1. **Sets up the environment:**
    - Java 17
-   - Android SDK API 35
-   - Build tools 35.0.0
+   - Android SDK API 36
+   - Build tools 36.0.0
 
 2. **Copies web assets** into the Android wrapper
 
